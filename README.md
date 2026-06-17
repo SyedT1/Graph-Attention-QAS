@@ -424,4 +424,3 @@ No GPU is required; default settings are tuned to run in a few minutes to ~15 mi
 20. **Awesome-QAS.** github.com/Aqasch/awesome-QAS
 
 ---
-
