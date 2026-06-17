@@ -175,7 +175,7 @@ $$\mathcal{L}(\phi) = \underbrace{\frac{1}{|\mathcal{B}|}\sum_{c\in\mathcal{B}}\
 
 The ranking term sums over `RANK_PAIRS = 256` randomly sampled circuit-index pairs $P$ per epoch, with margin $m =$ `RANK_MARGIN = 0.10` and weight $\lambda_{\mathrm{rank}} =$ `RANK_WEIGHT = 1.0`. This is a margin ranking loss: it incurs zero penalty once the predicted gap between $\hat{y}_a$ and $\hat{y}_b$ correctly matches the sign of the true gap by at least margin $m$, and a linearly growing penalty otherwise — rewarding correct *order* independent of getting the absolute energy scale right, which is exactly what the downstream search needs (it only ever compares circuits to each other, never reads off an absolute number). Model selection tracks the validation-set **Kendall rank correlation**,
 
-$$\tau = \frac{(\#\text{concordant pairs}) - (\#\text{discordant pairs})}{\binom{N}{2}}$$
+$$\tau = \frac{(\text{# concordant pairs}) - (\text{# discordant pairs})}{\binom{N}{2}}$$
 
 over all $\binom{N}{2}$ pairs of validation circuits, where a pair is concordant if $\mathrm{sign}(\hat{y}_a - \hat{y}_b) = \mathrm{sign}(y_a - y_b)$; the best-$\tau$ checkpoint is restored before computing the final, reported test-set $\tau$. From v2 onward the GNN backbone ($g_1, g_2$) is frozen (`requires_grad = False`) for the first half of fine-tuning epochs and unfrozen for the second half, after being initialized from self-supervised pre-training (§5.5) — a standard frozen-then-fine-tuned transfer-learning schedule.
 
@@ -197,21 +197,21 @@ where $\mathrm{pos}(p)$ indexes the one positive partner of sample $p$ (view $a$
 
 The search loop is the same in every notebook: sample a large pool of candidates ($|\mathcal{P}| =$ `SEARCH_POOL` $= 4000$), score every one with a single cheap forward pass through the trained predictor — no quantum simulation — rank by an acquisition score, and run real VQE only on the top `TOPK_VALIDATE = 8` finalists. The acquisition function is
 
-$$s(c) = \hat{E}(c) \;+\; \lambda_{\mathrm{gate}}\,|c| \;+\; \lambda_{\mathrm{cnot}}\,n_{\mathrm{CNOT}}(c), \qquad c^\star = \arg\min_{c\in\mathcal{P}} s(c)$$
+$$s(c) = \hat{E}(c) \;+\; \lambda_\text{gate}\,|c| \;+\; \lambda_\text{cnot}\,n_\text{CNOT}(c), \qquad c^\star = \arg\min_{c\in\mathcal{P}} s(c)$$
 
-where $\hat{E}(c) = \hat{y}_\phi(c)\cdot\sigma_E + \mu_E$ is the predictor's de-standardized energy estimate, $|c|$ is total gate count, and $n_{\mathrm{CNOT}}(c)$ is the CNOT count. The two penalty terms are meant to push the search toward shallow, entangler-sparse circuits — the actual "efficient architecture" objective in addition to low energy — but their weights were a major, repeated source of bugs across the version history.
+where $\hat{E}(c) = \hat{y}_\phi(c)\cdot\sigma_E + \mu_E$ is the predictor's de-standardized energy estimate, $|c|$ is total gate count, and $n_\text{CNOT}(c)$ is the CNOT count. The two penalty terms are meant to push the search toward shallow, entangler-sparse circuits — the actual "efficient architecture" objective in addition to low energy — but their weights were a major, repeated source of bugs across the version history.
 
 ### 6.1 Bug: The Efficiency Penalty Drowned the Energy Signal (v1, v2)
 
-In v1 and v2, $\lambda_{\mathrm{gate}} = 0.015$ and $\lambda_{\mathrm{cnot}} = 0.040$. Because adding one CNOT costs a flat $0.040$ in the acquisition score while the *actual* TFIM energy differences between candidate circuits at this scale are typically a few tenths, the term $\lambda_{\mathrm{cnot}}\,n_{\mathrm{CNOT}}(c)$ dominated $\hat{E}(c)$'s discriminating signal for almost any pair of circuits differing by a CNOT or two — i.e. $s(c)$ was effectively minimized by minimizing $n_{\mathrm{CNOT}}(c)$ first and the energy only as a tiebreaker. The result, confirmed by the executed output of both notebooks: **every top-8 finalist in v1 had exactly 0 CNOTs**, and the v2 multi-seed run reported a CNOT standard deviation of exactly `0.000` across all 5 seeds — the search had degenerated into "find the best product state" (§3.1), which cannot represent TFIM's entangled ground state no matter how well-tuned. v1's best circuit ($L=8$, $|\boldsymbol\theta|=8$, $n_{\mathrm{CNOT}}=0$) reached $\Delta E = 0.655$ (13.8% relative error) and was, by chance, numerically *tied* with random search at the same budget.
+In v1 and v2, $\lambda_\text{gate} = 0.015$ and $\lambda_\text{cnot} = 0.040$. Because adding one CNOT costs a flat $0.040$ in the acquisition score while the *actual* TFIM energy differences between candidate circuits at this scale are typically a few tenths, the term $\lambda_\text{cnot}\,n_\text{CNOT}(c)$ dominated $\hat{E}(c)$'s discriminating signal for almost any pair of circuits differing by a CNOT or two — i.e. $s(c)$ was effectively minimized by minimizing $n_\text{CNOT}(c)$ first and the energy only as a tiebreaker. The result, confirmed by the executed output of both notebooks: **every top-8 finalist in v1 had exactly 0 CNOTs**, and the v2 multi-seed run reported a CNOT standard deviation of exactly `0.000` across all 5 seeds — the search had degenerated into "find the best product state" (§3.1), which cannot represent TFIM's entangled ground state no matter how well-tuned. v1's best circuit ($L=8$, $|\boldsymbol\theta|=8$, $n_\text{CNOT}=0$) reached $\Delta E = 0.655$ (13.8% relative error) and was, by chance, numerically *tied* with random search at the same budget.
 
 ### 6.2 Fix #1: Reduce the Penalty Weights (v3)
 
-v3 reduces $\lambda_{\mathrm{gate}} \to 0.008$ and $\lambda_{\mathrm{cnot}} \to 0.012$. This let the search explore CNOT-containing circuits again: the v3 multi-seed mean energy gap improved to $\Delta E = 0.344 \pm 0.026$ (vs. $0.580 \pm 0.168$ for random search), with the GAT-guided circuits now averaging $0.6 \pm 0.5$ CNOTs before pruning.
+v3 reduces $\lambda_\text{gate} \to 0.008$ and $\lambda_\text{cnot} \to 0.012$. This let the search explore CNOT-containing circuits again: the v3 multi-seed mean energy gap improved to $\Delta E = 0.344 \pm 0.026$ (vs. $0.580 \pm 0.168$ for random search), with the GAT-guided circuits now averaging $0.6 \pm 0.5$ CNOTs before pruning.
 
 ### 6.3 Fix #2: Force a CNOT Floor, then Drop the Penalty Entirely (v4)
 
-v4 goes further: it sets $\lambda_{\mathrm{gate}} = \lambda_{\mathrm{cnot}} = 0$ — an **energy-only** acquisition function $s(c) = \hat{E}(c)$ — enforces the hard floor $n_{\mathrm{CNOT}}(c) \ge \mathrm{MIN\_CNOTS} = 2$ directly in the sampler (§3.1), and adds a post-hoc filter that discards any sampled circuit with $|c| > \mathrm{MAX\_DEPTH\_FILTER} = 16$ before scoring. This combination reached $\Delta E = 0.311 \pm 0.018$, with GAT-guided circuits averaging $2.4 \pm 0.9$ CNOTs ($1.0 \pm 0.0$ after pruning) — the first version where pruned circuits reliably keep at least one CNOT across every seed.
+v4 goes further: it sets $\lambda_\text{gate} = \lambda_\text{cnot} = 0$ — an **energy-only** acquisition function $s(c) = \hat{E}(c)$ — enforces the hard floor $n_\text{CNOT}(c) \ge \text{MIN\\_CNOTS} = 2$ directly in the sampler (§3.1), and adds a post-hoc filter that discards any sampled circuit with $|c| > \text{MAX\\_DEPTH\\_FILTER} = 16$ before scoring. This combination reached $\Delta E = 0.311 \pm 0.018$, with GAT-guided circuits averaging $2.4 \pm 0.9$ CNOTs ($1.0 \pm 0.0$ after pruning) — the first version where pruned circuits reliably keep at least one CNOT across every seed.
 
 ### 6.4 Why the v4 Fix Was Still Incomplete, and the v5 Redesign (`q5-optimized.ipynb`)
 
@@ -313,7 +313,7 @@ Two results stand out. First, **only the v5 layered-ansatz redesign (`q5-optimiz
 
 ## 12. Mathematical and Methodological Limitations
 
-**The acquisition function's energy term and efficiency penalty terms are not on a common, principled scale.** $s(c) = \hat{E}(c) + \lambda_{\mathrm{gate}}|c| + \lambda_{\mathrm{cnot}}\,n_{\mathrm{CNOT}}(c)$ adds an energy (in the dimensionless TFIM energy scale) to integer gate counts with hand-tuned weights $\lambda$. The v1→v2 bug (§6.1) was a direct, predictable consequence of this: there is no a priori reason a CNOT should cost exactly $0.040$ energy-units rather than $0.012$ or $0$, and three different scalarizations were tried across the version history before landing on "drop the penalty and use a hard structural constraint instead" (v4) or "redesign the search space so the constraint is structural by construction" (`q5-optimized`). A more principled approach — e.g. a Pareto frontier over $(\hat{E}(c), |c|)$ rather than a single scalarized score $s(c)$, or normalizing the penalty by the empirical energy spread $\sigma_E$ of the candidate pool so $\lambda_{\mathrm{cnot}}$ is dimensionless relative to the actual signal it competes against — is not implemented anywhere in this series.
+**The acquisition function's energy term and efficiency penalty terms are not on a common, principled scale.** $s(c) = \hat{E}(c) + \lambda_\text{gate}|c| + \lambda_\text{cnot}\,n_\text{CNOT}(c)$ adds an energy (in the dimensionless TFIM energy scale) to integer gate counts with hand-tuned weights $\lambda$. The v1→v2 bug (§6.1) was a direct, predictable consequence of this: there is no a priori reason a CNOT should cost exactly $0.040$ energy-units rather than $0.012$ or $0$, and three different scalarizations were tried across the version history before landing on "drop the penalty and use a hard structural constraint instead" (v4) or "redesign the search space so the constraint is structural by construction" (`q5-optimized`). A more principled approach — e.g. a Pareto frontier over $(\hat{E}(c), |c|)$ rather than a single scalarized score $s(c)$, or normalizing the penalty by the empirical energy spread $\sigma_E$ of the candidate pool so $\lambda_\text{cnot}$ is dimensionless relative to the actual signal it competes against — is not implemented anywhere in this series.
 
 **The TFIM benchmark is small enough to make the predictor's value proposition hard to demonstrate.** At $n=4$ qubits the Hamiltonian is exactly diagonalizable in milliseconds via dense `eigvalsh`, and a single VQE evaluation costs only a few seconds. The entire motivation for a learned predictor — that full evaluation is too expensive to apply to every candidate — is far more pressing at 8–20 qubits, where the Hilbert space dimension $2^n$ grows large enough that exact diagonalization itself becomes the bottleneck. Every "publishability checklist" across all eight files independently flags `Scale beyond a few qubits (>= 8 qubits)` as unmet.
 
@@ -350,7 +350,7 @@ $$\mathcal{L}_{\mathrm{NT\text{-}Xent}} = -\log\frac{\exp(S_{p,\mathrm{pos}}/\ta
 
 backbone frozen for the first half of fine-tuning epochs.
 
-**Search:** sample 4,000 candidates → score with one predictor forward pass each → rank by $s(c) = \hat{E}(c) + \lambda_{\mathrm{gate}}|c| + \lambda_{\mathrm{cnot}}n_{\mathrm{CNOT}}(c)$ (or energy-only from v4 onward) → validate top 8 with full VQE.
+**Search:** sample 4,000 candidates → score with one predictor forward pass each → rank by $s(c) = \hat{E}(c) + \lambda_\text{gate}|c| + \lambda_\text{cnot}n_\text{CNOT}(c)$ (or energy-only from v4 onward) → validate top 8 with full VQE.
 
 **Pruning:** greedy single-gate removal, accept if $E(c_{-l}) - E(c) \le \mathrm{tol}$; tolerance and re-validation precision tightened in `q5-optimized` to avoid mistaking VQE noise for redundancy.
 
@@ -424,3 +424,4 @@ No GPU is required; default settings are tuned to run in a few minutes to ~15 mi
 20. **Awesome-QAS.** github.com/Aqasch/awesome-QAS
 
 ---
+
