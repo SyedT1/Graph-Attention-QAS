@@ -10,16 +10,80 @@ This repository is a sequence of eight notebooks, each one a snapshot of the sam
 
 ## Contents of this Repository
 
-| File | Internal version label | What it adds |
-|------|------------------------|--------------|
-| `graph_attention_QAS_executed.ipynb` | v1 (baseline) | The original end-to-end pipeline |
-| `graph-attention-qas-v2 (1).ipynb` | v2 | Cleaner VQE labels, ZX-calculus augmentation, SSL pre-training, multi-seed stats |
-| `qas-v3.ipynb` | v3 | Four bug fixes to v2 |
-| `Graph-Attention-QAS-v4.ipynb` | v4 | Five further fixes to the search space and labels |
-| `q5-bench (1).ipynb` | "v4" (parallel branch) | GCN-vs-GAT ablation, sample-efficiency curve, Heisenberg cross-task check, joblib caching |
-| `q5-optimized.ipynb` | v4→v5 | Replaces the free-form gate search space with a layered hardware-efficient ansatz; fixes a pruning bug |
-| `QAS-v6.ipynb` | "v5" (branch from `q5-bench`) | Promotes GCN to the primary predictor; adds a 165-point circuit-level Spearman ρ |
-| `DQAS+KANQAS.ipynb` | "v6" (branch from `q5-bench`) | Adds a KAN regression head and a DQAS (Gumbel-Softmax/REINFORCE) baseline |
+|
+ File 
+|
+ Internal version label 
+|
+ What it adds 
+|
+|
+------
+|
+------------------------
+|
+--------------
+|
+|
+`graph_attention_QAS_executed.ipynb`
+|
+ v1 (baseline) 
+|
+ The original end-to-end pipeline 
+|
+|
+`graph-attention-qas-v2 (1).ipynb`
+|
+ v2 
+|
+ Cleaner VQE labels, ZX-calculus augmentation, SSL pre-training, multi-seed stats 
+|
+|
+`qas-v3.ipynb`
+|
+ v3 
+|
+ Four bug fixes to v2 
+|
+|
+`Graph-Attention-QAS-v4.ipynb`
+|
+ v4 
+|
+ Five further fixes to the search space and labels 
+|
+|
+`q5-bench (1).ipynb`
+|
+ "v4" (parallel branch) 
+|
+ GCN-vs-GAT ablation, sample-efficiency curve, Heisenberg cross-task check, joblib caching 
+|
+|
+`q5-optimized.ipynb`
+|
+ v4→v5 
+|
+ Replaces the free-form gate search space with a layered hardware-efficient ansatz; fixes a pruning bug 
+|
+|
+`QAS-v6.ipynb`
+|
+ "v5" (branch from 
+`q5-bench`
+) 
+|
+ Promotes GCN to the primary predictor; adds a 165-point circuit-level Spearman ρ 
+|
+|
+`DQAS+KANQAS.ipynb`
+|
+ "v6" (branch from 
+`q5-bench`
+) 
+|
+ Adds a KAN regression head and a DQAS (Gumbel-Softmax/REINFORCE) baseline 
+|
 
 All eight notebooks share the same skeleton (TFIM Hamiltonian → circuit search space → graph encoding → GNN predictor → guided search → pruning → baselines → an automated "publishability checklist"), so the sections below build up the full mathematical pipeline once, then go through what changed numerically at each version.
 
@@ -35,7 +99,7 @@ where each $U_l$ is either a single-qubit rotation $RX(\theta)$, $RY(\theta)$, $
 
 $$C(\boldsymbol\theta) = \langle\psi(\boldsymbol\theta)|H|\psi(\boldsymbol\theta)\rangle = \langle 0|^{\otimes n}\,U(\boldsymbol\theta)^\dagger\, H\, U(\boldsymbol\theta)\,|0\rangle^{\otimes n}$$
 
-for a target Hamiltonian $H$. The *architecture* is the discrete choice of which gates appear, on which qubits, in what order — i.e. the sequence $\{(\mathrm{gate}_l, \mathrm{qubits}_l)\}_{l=1}^L$ independent of the continuous angles $\boldsymbol\theta$. A poor architecture either cannot represent the target state at all (insufficient expressivity) or makes the loss landscape pathological — gradients $\nabla_{\boldsymbol\theta} C$ that vanish exponentially in $n$ almost everywhere (a *barren plateau*, McClean et al. 2018). On NISQ hardware there is an extra pressure: every two-qubit gate injects physical noise, so the search wants circuits that are simultaneously low-energy, shallow, and CNOT-sparse.
+for a target Hamiltonian $H$. The *architecture* is the discrete choice of which gates appear, on which qubits, in what order — i.e. the sequence $\{(\mathrm{gate}_l, \mathrm{qubits}_l)\}_{l=1}^{L}$ independent of the continuous angles $\boldsymbol\theta$. A poor architecture either cannot represent the target state at all (insufficient expressivity) or makes the loss landscape pathological — gradients $\nabla_{\boldsymbol\theta} C$ that vanish exponentially in $n$ almost everywhere (a *barren plateau*, McClean et al. 2018). On NISQ hardware there is an extra pressure: every two-qubit gate injects physical noise, so the search wants circuits that are simultaneously low-energy, shallow, and CNOT-sparse.
 
 **Quantum Architecture Search (QAS)** is the bi-level optimization
 
@@ -55,7 +119,7 @@ $$H_{\mathrm{TFIM}} = -J\sum_{i=0}^{n-2} Z_i Z_{i+1} \;-\; h\sum_{i=0}^{n-1} X_i
 
 with $J = h = 1.0$ and $n = 4$ throughout (Hilbert space dimension $2^4 = 16$). $H$ is built as a PennyLane `qml.Hamiltonian`, converted to its dense matrix representation, and diagonalized exactly:
 
-$$E_0 = \lambda_{\min}\bigl(H_{\mathrm{TFIM}}\bigr) = \min_k \lambda_k, \qquad H_{\mathrm{TFIM}}\,|\phi_k\rangle = \lambda_k\,|\phi_k\rangle$$
+$$E_0 = \lambda_{\min}(H_{\mathrm{TFIM}}) = \min_k \lambda_k, \qquad H_{\mathrm{TFIM}}\,|\phi_k\rangle = \lambda_k\,|\phi_k\rangle$$
 
 via `numpy.linalg.eigvalsh`. At $n=4$, $E_0 = -4.758770$ in every notebook (it depends only on $J, h, n$, which never change across the series). The **energy gap** reported everywhere is the non-negative quantity
 
@@ -79,7 +143,7 @@ $$C_{\mathrm{local}}(\boldsymbol\theta) = \langle\psi(\boldsymbol\theta)|H_{\mat
 
 for `local_steps = floor(VQE_STEPS · LOCAL_COST_FRAC)` steps (`LOCAL_COST_FRAC = 0.30`, so 30% of the budget), and phase 2 switches to the true cost $C(\boldsymbol\theta) = \langle H \rangle$ for the remaining `global_steps = VQE_STEPS − local_steps`. $H_{\mathrm{local}}$ is a sum of single-qubit operators, so unlike a global $n$-qubit observable its gradient variance does not shrink exponentially with $n$ (Cerezo et al. 2021); the idea is to use it purely to escape the flat region near a random initialization before switching to the real objective the search actually cares about. Parameters are initialized **layerwise** rather than uniformly at random:
 
-$$\theta_i^{(0)} \sim \mathcal{N}(0,\; 0.05^2) \quad \text{(layerwise init)} \qquad \text{vs.} \qquad \theta_i^{(0)} \sim \mathcal{U}(0, 2\pi) \quad \text{(v1 default)}$$
+$$\theta_i^{(0)} \sim \mathcal{N}(0,\, 0.05^2) \quad \text{(layerwise init)} \qquad \text{vs.} \qquad \theta_i^{(0)} \sim \mathcal{U}(0, 2\pi) \quad \text{(v1 default)}$$
 
 Both phases use PennyLane's `AdamOptimizer` with the autograd interface, which differentiates the quantum circuit using the parameter-shift rule under the hood. For a gate $e^{-i\theta P/2}$ generated by a Pauli $P$, the exact gradient of an expectation value is
 
@@ -93,9 +157,9 @@ with no finite-difference approximation error, since this identity is exact for 
 
 ### 3.1 Free-Form Gate Slots (v1 through `QAS-v6.ipynb` and `DQAS+KANQAS.ipynb`)
 
-A circuit is a list of $L$ slots $\{(\mathrm{gate}_l, q_l)\}_{l=1}^L$, with $L \sim \mathcal{U}\{\mathrm{MIN\_DEPTH}, \ldots, \mathrm{MAX\_DEPTH}\}$ (8–18 in most notebooks), and gate types drawn uniformly from $\mathcal{G} = \{RX, RY, RZ, \mathrm{CNOT}\}$. Rotation gates act on one randomly chosen qubit $q_l \in \{0,\ldots,n-1\}$ and carry one trainable angle; CNOTs act on a randomly chosen control qubit and its ring-neighbour $(q_l,\, (q_l+1)\bmod n)$. The number of trainable parameters is $|\boldsymbol\theta| = |\{l : \mathrm{gate}_l \neq \mathrm{CNOT}\}|$.
+A circuit is a list of $L$ slots $\{(\mathrm{gate}_l, q_l)\}_{l=1}^{L}$, with $L \sim \mathcal{U}\{\mathrm{MIN\_DEPTH}, \ldots, \mathrm{MAX\_DEPTH}\}$ (8–18 in most notebooks), and gate types drawn uniformly from $\mathcal{G} = \{RX, RY, RZ, \mathrm{CNOT}\}$. Rotation gates act on one randomly chosen qubit $q_l \in \{0,\ldots,n-1\}$ and carry one trainable angle; CNOTs act on a randomly chosen control qubit and its ring-neighbour $(q_l,\, (q_l+1)\bmod n)$. The number of trainable parameters is $|\boldsymbol\theta| = |\{l : \mathrm{gate}_l \neq \mathrm{CNOT}\}|$.
 
-From v4 onward, `sample_circuit` enforces a hard floor $|\{l : \mathrm{gate}_l = \mathrm{CNOT}\}| \ge \mathrm{MIN\_CNOTS} = 2$: if a randomly sampled circuit has fewer CNOTs than the floor, early non-CNOT slots are overwritten with CNOTs until the floor is met. This exists because v1–v3 routinely produced "winning" circuits with **zero** CNOTs. A CNOT-free circuit factorizes as $U = \bigotimes_{i=1}^n u_i(\theta_i)$, a product of independent single-qubit unitaries, so $|\psi(\boldsymbol\theta)\rangle = \bigotimes_i u_i(\theta_i)|0\rangle$ is a separable (unentangled) product state for *any* choice of $\boldsymbol\theta$. The TFIM ground state at $J=h$ has nonzero two-point correlations $\langle Z_iZ_{i+1}\rangle \neq \langle Z_i\rangle\langle Z_{i+1}\rangle$ and is provably entangled, so no product state — however well its single-qubit angles are tuned — can reach $\Delta E = 0$; a 0-CNOT circuit is suboptimal by construction for this Hamiltonian, regardless of optimization quality.
+From v4 onward, `sample_circuit` enforces a hard floor $|\{l : \mathrm{gate}_l = \mathrm{CNOT}\}| \ge \mathrm{MIN\_CNOTS} = 2$: if a randomly sampled circuit has fewer CNOTs than the floor, early non-CNOT slots are overwritten with CNOTs until the floor is met. This exists because v1–v3 routinely produced "winning" circuits with **zero** CNOTs. A CNOT-free circuit factorizes as $U = \bigotimes_{i=1}^{n} u_i(\theta_i)$, a product of independent single-qubit unitaries, so $|\psi(\boldsymbol\theta)\rangle = \bigotimes_i u_i(\theta_i)|0\rangle$ is a separable (unentangled) product state for *any* choice of $\boldsymbol\theta$. The TFIM ground state at $J=h$ has nonzero two-point correlations $\langle Z_iZ_{i+1}\rangle \neq \langle Z_i\rangle\langle Z_{i+1}\rangle$ and is provably entangled, so no product state — however well its single-qubit angles are tuned — can reach $\Delta E = 0$; a 0-CNOT circuit is suboptimal by construction for this Hamiltonian, regardless of optimization quality.
 
 ### 3.2 Layered Hardware-Efficient Ansatz (`q5-optimized.ipynb` Only)
 
@@ -113,7 +177,7 @@ Every notebook encodes a circuit as a directed graph $\mathcal{C} = (\mathcal{V}
 
 **Nodes** $\mathcal{V} = \{v_1,\ldots,v_L\}$ are gates. The feature vector of node $v_l$ is the concatenation
 
-$$x_l = \bigl[\underbrace{\mathrm{onehot}(\mathrm{gate}_l)}_{|\mathcal{G}|=4}\ \|\ \underbrace{c_l,\, t_l}_{\text{control/target flags}}\ \|\ \underbrace{\mathrm{onehot}(q_l)}_{n=4}\ \|\ \underbrace{\sin\phi_l,\, \cos\phi_l}_{\text{phase, v2+ only}}\bigr] \in \mathbb{R}^{d}$$
+$$x_l = \bigl[\underbrace{\mathrm{onehot}(\mathrm{gate}_l)}_{|\mathcal{G}|=4}\ \Vert\ \underbrace{c_l,\, t_l}_{\text{control/target flags}}\ \Vert\ \underbrace{\mathrm{onehot}(q_l)}_{n=4}\ \Vert\ \underbrace{\sin\phi_l,\, \cos\phi_l}_{\text{phase, v2+ only}}\bigr] \in \mathbb{R}^{d}$$
 
 where $c_l = t_l = 1$ jointly whenever $\mathrm{gate}_l = \mathrm{CNOT}$ (and both 0 otherwise), and $\phi_l$ is the rotation angle when a ZX-augmented circuit carries an explicit phase (set to 0 for unaugmented circuits). Feature dimension $d = 10$ in v1 (no phase pair), $d = 12$ from v2 onward.
 
@@ -127,19 +191,19 @@ where $c_l = t_l = 1$ jointly whenever $\mathrm{gate}_l = \mathrm{CNOT}$ (and bo
 
 Implemented from scratch (no PyTorch Geometric). Each `GATLayer` applies a learned linear projection $W \in \mathbb{R}^{H \cdot D \times d_{\mathrm{in}}}$ shared across all $H$ heads, then reshapes to per-head features $h_l^{(k)} \in \mathbb{R}^D$ for head $k=1,\ldots,H$. For a directed edge $j \to i$, head $k$ computes an unnormalized attention logit as the **sum** of a source term and a destination term (not a concatenation — this is the additive variant of GAT):
 
-$$e_{ij}^{(k)} = \mathrm{LeakyReLU}_{0.2}\!\Bigl(\mathbf{a}^{(k)}_{\mathrm{src}}{}^{\!\top} h_j^{(k)} \;+\; \mathbf{a}^{(k)}_{\mathrm{dst}}{}^{\!\top} h_i^{(k)}\Bigr)$$
+$$e_{ij}^{(k)} = \mathrm{LeakyReLU}_{0.2}\Bigl(\mathbf{a}^{(k)}_{\mathrm{src}}{}^{\top} h_j^{(k)} \;+\; \mathbf{a}^{(k)}_{\mathrm{dst}}{}^{\top} h_i^{(k)}\Bigr)$$
 
 where $\mathbf{a}^{(k)}_{\mathrm{src}}, \mathbf{a}^{(k)}_{\mathrm{dst}} \in \mathbb{R}^D$ are learned per-head attention vectors. The logits are normalized with an edge-softmax over all of $i$'s incoming neighbours $\mathcal{N}(i)$:
 
-$$\alpha_{ij}^{(k)} = \frac{\exp\!\bigl(e_{ij}^{(k)} - \max_{j'\in\mathcal{N}(i)} e_{ij'}^{(k)}\bigr)}{\displaystyle\sum_{j'\in\mathcal{N}(i)} \exp\!\bigl(e_{ij'}^{(k)} - \max_{j''\in\mathcal{N}(i)} e_{ij''}^{(k)}\bigr)}$$
+$$\alpha_{ij}^{(k)} = \frac{\exp\bigl(e_{ij}^{(k)} - \max_{j'\in\mathcal{N}(i)} e_{ij'}^{(k)}\bigr)}{\displaystyle\sum_{j'\in\mathcal{N}(i)} \exp\bigl(e_{ij'}^{(k)} - \max_{j''\in\mathcal{N}(i)} e_{ij''}^{(k)}\bigr)}$$
 
 (the max-subtraction is implemented explicitly in code for numerical stability and does not change the value of the softmax), and aggregates
 
 $$h_i'^{(k)} = \sum_{j \in \mathcal{N}(i)} \alpha_{ij}^{(k)}\, h_j^{(k)}$$
 
-The first `GATLayer` runs `HEADS = 4` heads in parallel and **concatenates** them, $h_i' = \bigl[h_i'^{(1)} \,\|\, \cdots \,\|\, h_i'^{(H)}\bigr] \in \mathbb{R}^{HD}$; the second layer runs 4 heads again but **averages** them, $h_i' = \frac{1}{H}\sum_k h_i'^{(k)} \in \mathbb{R}^D$. Both layers apply ELU activation, $\mathrm{ELU}(x) = x$ if $x > 0$, else $\alpha(e^x - 1)$. Graph-level pooling concatenates mean and max over all nodes:
+The first `GATLayer` runs `HEADS = 4` heads in parallel and **concatenates** them, $h_i' = \bigl[h_i'^{(1)} \,\Vert\, \cdots \,\Vert\, h_i'^{(H)}\bigr] \in \mathbb{R}^{HD}$; the second layer runs 4 heads again but **averages** them, $h_i' = \frac{1}{H}\sum_k h_i'^{(k)} \in \mathbb{R}^D$. Both layers apply ELU activation, $\mathrm{ELU}(x) = x$ if $x > 0$, else $\alpha(e^x - 1)$. Graph-level pooling concatenates mean and max over all nodes:
 
-$$z = \bigl[\, \mathrm{mean}_{i\in\mathcal{V}}\,h_i' \;\|\; \max_{i\in\mathcal{V}}\,h_i' \,\bigr] \in \mathbb{R}^{2D}$$
+$$z = \bigl[\, \mathrm{mean}_{i\in\mathcal{V}}\,h_i' \;\Vert\; \max_{i\in\mathcal{V}}\,h_i' \,\bigr] \in \mathbb{R}^{2D}$$
 
 and a two-layer MLP head $\hat{E}_{\mathrm{std}} = W_2\,\mathrm{ReLU}(W_1 z + b_1) + b_2$ produces the standardized energy prediction. Total parameter count: 20,289 (v1, $d=10$) or 20,545 (v2 onward, $d=12$), with `hidden = 32`.
 
@@ -147,7 +211,7 @@ and a two-layer MLP head $\hat{E}_{\mathrm{std}} = W_2\,\mathrm{ReLU}(W_1 z + b_
 
 Introduced in `q5-bench` as a no-attention baseline, reused in `QAS-v6.ipynb` and `DQAS+KANQAS.ipynb`. Each `GCNLayer` replaces the learned attention weights $\alpha_{ij}^{(k)}$ with a fixed, unweighted average over in-neighbours:
 
-$$h_i' = \mathrm{ELU}\!\left(W\cdot\frac{1}{|\mathcal{N}(i)|}\sum_{j \in \mathcal{N}(i)} h_j\right)$$
+$$h_i' = \mathrm{ELU}\left(W\cdot\frac{1}{|\mathcal{N}(i)|}\sum_{j \in \mathcal{N}(i)} h_j\right)$$
 
 i.e. $\alpha_{ij} \equiv 1/|\mathcal{N}(i)|$ for every edge regardless of node content — the same two-layer + mean/max-pool + MLP-head structure as the GAT predictor, but with only 3,585 parameters (no per-head attention projections $\mathbf{a}^{(k)}_{\mathrm{src}}, \mathbf{a}^{(k)}_{\mathrm{dst}}$). The point of including it is to isolate whether *content-dependent attention* specifically — not just "any message-passing graph network" — is what drives the predictor's ranking quality.
 
@@ -175,9 +239,9 @@ $$\mathcal{L}(\phi) = \underbrace{\frac{1}{|\mathcal{B}|}\sum_{c\in\mathcal{B}}\
 
 The ranking term sums over `RANK_PAIRS = 256` randomly sampled circuit-index pairs $P$ per epoch, with margin $m =$ `RANK_MARGIN = 0.10` and weight $\lambda_{\mathrm{rank}} =$ `RANK_WEIGHT = 1.0`. This is a margin ranking loss: it incurs zero penalty once the predicted gap between $\hat{y}_a$ and $\hat{y}_b$ correctly matches the sign of the true gap by at least margin $m$, and a linearly growing penalty otherwise — rewarding correct *order* independent of getting the absolute energy scale right, which is exactly what the downstream search needs (it only ever compares circuits to each other, never reads off an absolute number). Model selection tracks the validation-set **Kendall rank correlation**,
 
-$$\tau = \frac{(\text{# concordant pairs}) - (\text{# discordant pairs})}{\binom{N}{2}}$$
+$$\tau = \frac{N_{\text{concordant}} - N_{\text{discordant}}}{\binom{N}{2}}$$
 
-over all $\binom{N}{2}$ pairs of validation circuits, where a pair is concordant if $\mathrm{sign}(\hat{y}_a - \hat{y}_b) = \mathrm{sign}(y_a - y_b)$; the best-$\tau$ checkpoint is restored before computing the final, reported test-set $\tau$. From v2 onward the GNN backbone ($g_1, g_2$) is frozen (`requires_grad = False`) for the first half of fine-tuning epochs and unfrozen for the second half, after being initialized from self-supervised pre-training (§5.5) — a standard frozen-then-fine-tuned transfer-learning schedule.
+over all $\binom{N}{2}$ pairs of validation circuits, where $N_{\text{concordant}}$ is the number of concordant pairs and $N_{\text{discordant}}$ the number of discordant pairs — a pair is concordant if $\mathrm{sign}(\hat{y}_a - \hat{y}_b) = \mathrm{sign}(y_a - y_b)$; the best-$\tau$ checkpoint is restored before computing the final, reported test-set $\tau$. From v2 onward the GNN backbone ($g_1, g_2$) is frozen (`requires_grad = False`) for the first half of fine-tuning epochs and unfrozen for the second half, after being initialized from self-supervised pre-training (§5.5) — a standard frozen-then-fine-tuned transfer-learning schedule.
 
 ### 5.5 Self-Supervised Pre-Training (v2 Onward)
 
@@ -211,7 +275,7 @@ v3 reduces $\lambda_\text{gate} \to 0.008$ and $\lambda_\text{cnot} \to 0.012$. 
 
 ### 6.3 Fix #2: Force a CNOT Floor, then Drop the Penalty Entirely (v4)
 
-v4 goes further: it sets $\lambda_\text{gate} = \lambda_\text{cnot} = 0$ — an **energy-only** acquisition function $s(c) = \hat{E}(c)$ — enforces the hard floor $n_\text{CNOT}(c) \ge \text{MIN\\_CNOTS} = 2$ directly in the sampler (§3.1), and adds a post-hoc filter that discards any sampled circuit with $|c| > \text{MAX\\_DEPTH\\_FILTER} = 16$ before scoring. This combination reached $\Delta E = 0.311 \pm 0.018$, with GAT-guided circuits averaging $2.4 \pm 0.9$ CNOTs ($1.0 \pm 0.0$ after pruning) — the first version where pruned circuits reliably keep at least one CNOT across every seed.
+v4 goes further: it sets $\lambda_\text{gate} = \lambda_\text{cnot} = 0$ — an **energy-only** acquisition function $s(c) = \hat{E}(c)$ — enforces the hard floor $n_\text{CNOT}(c) \ge \mathrm{MIN\_CNOTS} = 2$ directly in the sampler (§3.1), and adds a post-hoc filter that discards any sampled circuit with $|c| > \mathrm{MAX\_DEPTH\_FILTER} = 16$ before scoring. This combination reached $\Delta E = 0.311 \pm 0.018$, with GAT-guided circuits averaging $2.4 \pm 0.9$ CNOTs ($1.0 \pm 0.0$ after pruning) — the first version where pruned circuits reliably keep at least one CNOT across every seed.
 
 ### 6.4 Why the v4 Fix Was Still Incomplete, and the v5 Redesign (`q5-optimized.ipynb`)
 
@@ -241,12 +305,36 @@ The tolerance is tightened to $\mathrm{tol} = \mathrm{PRUNE\_TOL} = 10^{-3}$, an
 
 To multiply the labelled training set without any additional quantum simulation, four equivalence-preserving rewrites from ZX-calculus / circuit identities are applied to sampled circuits:
 
-| Transformation | Rewrite rule |
-|----------------|--------------|
-| Spider fusion | $R_\sigma(\alpha)\cdot R_\sigma(\beta) \;\to\; R_\sigma(\alpha+\beta)$ for adjacent same-axis ($\sigma\in\{X,Y,Z\}$) rotations on the same qubit |
-| Identity removal | $R_\sigma(\theta) \to \mathbf{1}$ whenever $\theta \equiv 0 \pmod{2\pi}$ within tolerance $0.08$ rad |
-| Phase-free simplification | $R_Z(\pi/2)\cdot R_X(\theta)\cdot R_Z(-\pi/2) \;\to\; R_Y(\theta)$ within tolerance $0.12$ rad |
-| Scalar reduction | Inverse substitution: $R_Y(\theta) \to R_Z(\pi/2)\cdot R_X(\theta)\cdot R_Z(-\pi/2)$ |
+|
+ Transformation 
+|
+ Rewrite rule 
+|
+|
+----------------
+|
+--------------
+|
+|
+ Spider fusion 
+|
+ $R_\sigma(\alpha)\cdot R_\sigma(\beta) \;\to\; R_\sigma(\alpha+\beta)$ for adjacent same-axis ($\sigma\in\{X,Y,Z\}$) rotations on the same qubit 
+|
+|
+ Identity removal 
+|
+ $R_\sigma(\theta) \to \mathbf{1}$ whenever $\theta \equiv 0 \pmod{2\pi}$ within tolerance $0.08$ rad 
+|
+|
+ Phase-free simplification 
+|
+ $R_Z(\pi/2)\cdot R_X(\theta)\cdot R_Z(-\pi/2) \;\to\; R_Y(\theta)$ within tolerance $0.12$ rad 
+|
+|
+ Scalar reduction 
+|
+ Inverse substitution: $R_Y(\theta) \to R_Z(\pi/2)\cdot R_X(\theta)\cdot R_Z(-\pi/2)$ 
+|
 
 These are genuine single-qubit gate identities (spider fusion is exact for any angle via $e^{-i\sigma(\alpha+\beta)/2} = e^{-i\sigma\alpha/2}e^{-i\sigma\beta/2}$; the Euler-angle decomposition $R_Z R_X R_Z = R_Y$ up to global phase is the standard ZXZ → Y identity). Each labelled circuit generates `ZX_VARIANTS` variants (3 in v2/v3, reduced to 1 from v4 onward — v3's training set was 75% ZX-synthetic, see §11) that **inherit the original circuit's energy label** at zero extra VQE cost, since the rewrites are theoretically energy-preserving. Validation and test splits are always drawn from the *original*, pre-augmentation circuit indices only (`orig_val`, `orig_test`) — ZX variants are added exclusively to the training split — a deliberate anti-leakage design documented explicitly in `q5-bench`'s code comments.
 
@@ -296,16 +384,143 @@ None of this means the underlying ideas (GAT/GCN/KAN encoders, DQAS, ZX augmenta
 
 All energy gaps are $\Delta E = E_{\mathrm{found}} - E_0$ on 4-qubit TFIM ($E_0 = -4.758770$), mean ± standard deviation over the 5 seeds `{7, 42, 137, 256, 512}` unless noted otherwise. ✓ marks numbers directly confirmed against the notebook's own stored, internally-consistent output; ⁺ marks numbers reconstructed from a different (mismatched) cell's stale output.
 
-| Notebook | Random gap | GAT/GCN-guided gap | + pruning | CNOTs after pruning | Test τ |
-|----------|------------|--------------------|-----------|---------------------|--------|
-| v1 (baseline, single seed) ✓ | 0.655 (tied) | 0.655 | 0.655 | 0 | 0.360 |
-| v2 ✓ | 0.580 ± 0.168 | 0.355 ± 0.000 | 0.355 ± 0.000 | 0 | 0.644 ± 0.079 |
-| v3 ✓ | 0.580 ± 0.168 | 0.344 ± 0.026 | 0.344 ± 0.026 | 0.2 ± 0.4 | 0.660 ± 0.078 |
-| v4 ✓ | 0.588 ± 0.171 | 0.311 ± 0.018 | 0.311 ± 0.018 | 1.0 ± 0.0 | 0.625 ± 0.054 |
-| `q5-bench` ✓ | 0.478 ± 0.212 | 0.337 ± 0.030 | 0.337 ± 0.030 | 0.6 ± 0.9 | GAT 0.650 ± 0.081 / GCN 0.730 ± 0.086 |
-| `q5-optimized` ✓ | 0.299 ± 0.344 | 0.046 ± 0.093 | **0.0045 ± 0.0057** | 6.2 ± 2.2 | 0.602 ± 0.031 |
-| `QAS-v6.ipynb` ✓ | 0.478 ± 0.212 | 0.336 ± 0.030 | 0.336 ± 0.030 | 0.6 ± 0.9 | GCN 0.626 ± 0.074 / GAT 0.647 ± 0.098 |
-| `DQAS+KANQAS.ipynb` ✓ (partial) | 0.478 ± 0.212 ⁺ | 0.337 ± 0.030 ⁺ | n/a in stored output | n/a in stored output | GAT 0.650 ± 0.081 / GCN 0.730 ± 0.086 ⁺ |
+|
+ Notebook 
+|
+ Random gap 
+|
+ GAT/GCN-guided gap 
+|
++
+ pruning 
+|
+ CNOTs after pruning 
+|
+ Test τ 
+|
+|
+----------
+|
+------------
+|
+--------------------
+|
+-----------
+|
+---------------------
+|
+--------
+|
+|
+ v1 (baseline, single seed) ✓ 
+|
+ 0.655 (tied) 
+|
+ 0.655 
+|
+ 0.655 
+|
+ 0 
+|
+ 0.360 
+|
+|
+ v2 ✓ 
+|
+ 0.580 ± 0.168 
+|
+ 0.355 ± 0.000 
+|
+ 0.355 ± 0.000 
+|
+ 0 
+|
+ 0.644 ± 0.079 
+|
+|
+ v3 ✓ 
+|
+ 0.580 ± 0.168 
+|
+ 0.344 ± 0.026 
+|
+ 0.344 ± 0.026 
+|
+ 0.2 ± 0.4 
+|
+ 0.660 ± 0.078 
+|
+|
+ v4 ✓ 
+|
+ 0.588 ± 0.171 
+|
+ 0.311 ± 0.018 
+|
+ 0.311 ± 0.018 
+|
+ 1.0 ± 0.0 
+|
+ 0.625 ± 0.054 
+|
+|
+`q5-bench`
+ ✓ 
+|
+ 0.478 ± 0.212 
+|
+ 0.337 ± 0.030 
+|
+ 0.337 ± 0.030 
+|
+ 0.6 ± 0.9 
+|
+ GAT 0.650 ± 0.081 / GCN 0.730 ± 0.086 
+|
+|
+`q5-optimized`
+ ✓ 
+|
+ 0.299 ± 0.344 
+|
+ 0.046 ± 0.093 
+|
+**
+0.0045 ± 0.0057
+**
+|
+ 6.2 ± 2.2 
+|
+ 0.602 ± 0.031 
+|
+|
+`QAS-v6.ipynb`
+ ✓ 
+|
+ 0.478 ± 0.212 
+|
+ 0.336 ± 0.030 
+|
+ 0.336 ± 0.030 
+|
+ 0.6 ± 0.9 
+|
+ GCN 0.626 ± 0.074 / GAT 0.647 ± 0.098 
+|
+|
+`DQAS+KANQAS.ipynb`
+ ✓ (partial) 
+|
+ 0.478 ± 0.212 ⁺ 
+|
+ 0.337 ± 0.030 ⁺ 
+|
+ n/a in stored output 
+|
+ n/a in stored output 
+|
+ GAT 0.650 ± 0.081 / GCN 0.730 ± 0.086 ⁺ 
+|
 
 Two results stand out. First, **only the v5 layered-ansatz redesign (`q5-optimized.ipynb`) actually closes the gap to the exact ground state** — every free-form-gate-slot version plateaus around $\Delta E \approx 0.3$–$0.4$ (roughly 6–8% relative error) no matter how the acquisition function, penalty weights, or VQE budget are tuned, because (per §6.4) the bottleneck is the search space's expressivity, not its optimization. Second, **the GCN-vs-GAT finding is itself unstable across reruns** — `q5-bench` and `DQAS+KANQAS.ipynb` (same seeds, closely related code) both show GCN ahead by a similar margin, but `QAS-v6.ipynb`, run with what is nominally the same experimental design, shows GAT ahead instead. At $n=4$ qubits with a 220-circuit dataset, this comparison does not appear to be settled.
 
@@ -337,7 +552,7 @@ Two results stand out. First, **only the v5 layered-ansatz redesign (`q5-optimiz
 
 **Circuit representation:** list of $(\mathrm{gate}, q)$ slots, $\mathrm{gate}\in\{RX, RY, RZ, \mathrm{CNOT}\}$ (free-form) or a layered rotation/fixed-CNOT-ladder structure (`q5-optimized` only).
 
-**Graph encoding:** directed graph, gates as nodes with feature vector $x_l = [\mathrm{onehot}(\mathrm{gate})\,\|\,c, t\,\|\,\mathrm{onehot}(q)\,\|\,(\sin\phi, \cos\phi)]$, bidirectional wire-following edges plus self-loops.
+**Graph encoding:** directed graph, gates as nodes with feature vector $x_l = [\mathrm{onehot}(\mathrm{gate})\,\Vert\,c, t\,\Vert\,\mathrm{onehot}(q)\,\Vert\,(\sin\phi, \cos\phi)]$, bidirectional wire-following edges plus self-loops.
 
 **Predictors:**
 - GAT — $e_{ij}^{(k)} = \mathrm{LeakyReLU}(\mathbf{a}^{(k)}_{\mathrm{src}}{}^\top h_j^{(k)} + \mathbf{a}^{(k)}_{\mathrm{dst}}{}^\top h_i^{(k)})$, edge-softmax $\alpha_{ij}$, $h_i' = \sum_j\alpha_{ij}h_j$ (2 layers × 4 heads, hidden = 32, mean+max pool, MLP head, 20.3–20.5k params)
@@ -386,17 +601,91 @@ No GPU is required; default settings are tuned to run in a few minutes to ~15 mi
 
 ## 15. Key Configuration Knobs
 
-| Parameter | Typical range across notebooks | Effect |
-|-----------|-------------------------------|--------|
-| `N_QUBITS` | 4 (fixed everywhere) | Problem size; scaling this up is the single most-requested fix in every publishability checklist |
-| `N_CIRCUITS` | 220 → 300 | Labelled dataset size before ZX augmentation |
-| `VQE_STEPS` / `VQE_RESTARTS` | 60/3 → 120/4 | VQE label quality; v4 found 60 steps left the best labelled circuit 0.28 above its 120-step value |
-| `ZX_VARIANTS` | 3 → 1 | v3's training set was 75% ZX-synthetic; reduced from v4 onward |
-| `SSL_EPOCHS` / `SSL_LR` | 60/3e-3 → 150/8e-4 | SSL pre-training; v3's loss plateaued near the random-init baseline, prompting longer training at a lower rate |
-| `SSL_TEMP` | 0.07 → 0.12 | NT-Xent temperature; raised because the original SimCLR value assumes far larger batches |
-| `LAMBDA_GATES` / `LAMBDA_CNOT` | 0.015/0.040 → 0.0/0.0 | Acquisition penalty weights; see §6 for the full bug history |
-| `MIN_CNOTS` | 0 → 2 | Entanglement floor (superseded by the layered-ansatz redesign in `q5-optimized`) |
-| `PRUNE_TOL` | 5e-3 → 1e-3 | Pruning tolerance; tightened after the silent-CNOT-removal bug |
+|
+ Parameter 
+|
+ Typical range across notebooks 
+|
+ Effect 
+|
+|
+-----------
+|
+-------------------------------
+|
+--------
+|
+|
+`N_QUBITS`
+|
+ 4 (fixed everywhere) 
+|
+ Problem size; scaling this up is the single most-requested fix in every publishability checklist 
+|
+|
+`N_CIRCUITS`
+|
+ 220 → 300 
+|
+ Labelled dataset size before ZX augmentation 
+|
+|
+`VQE_STEPS`
+ / 
+`VQE_RESTARTS`
+|
+ 60/3 → 120/4 
+|
+ VQE label quality; v4 found 60 steps left the best labelled circuit 0.28 above its 120-step value 
+|
+|
+`ZX_VARIANTS`
+|
+ 3 → 1 
+|
+ v3's training set was 75% ZX-synthetic; reduced from v4 onward 
+|
+|
+`SSL_EPOCHS`
+ / 
+`SSL_LR`
+|
+ 60/3e-3 → 150/8e-4 
+|
+ SSL pre-training; v3's loss plateaued near the random-init baseline, prompting longer training at a lower rate 
+|
+|
+`SSL_TEMP`
+|
+ 0.07 → 0.12 
+|
+ NT-Xent temperature; raised because the original SimCLR value assumes far larger batches 
+|
+|
+`LAMBDA_GATES`
+ / 
+`LAMBDA_CNOT`
+|
+ 0.015/0.040 → 0.0/0.0 
+|
+ Acquisition penalty weights; see §6 for the full bug history 
+|
+|
+`MIN_CNOTS`
+|
+ 0 → 2 
+|
+ Entanglement floor (superseded by the layered-ansatz redesign in 
+`q5-optimized`
+) 
+|
+|
+`PRUNE_TOL`
+|
+ 5e-3 → 1e-3 
+|
+ Pruning tolerance; tightened after the silent-CNOT-removal bug 
+|
 
 ---
 
@@ -424,4 +713,3 @@ No GPU is required; default settings are tuned to run in a few minutes to ~15 mi
 20. **Awesome-QAS.** github.com/Aqasch/awesome-QAS
 
 ---
-
