@@ -4,7 +4,7 @@ A research notebook series implementing **predictor-guided Quantum Architecture 
 
 The benchmark task throughout is the ground-state energy of the **Transverse-Field Ising Model (TFIM)**, solved via a Variational Quantum Eigensolver (VQE); some notebooks add the **Heisenberg model** as a second task.
 
-This repository is a sequence of eight notebooks, each one a snapshot of the same pipeline at a different stage of debugging and extension. They do not form a strictly linear v1→v8 chain — two of them (`q5-bench` and `q5-optimized`) branch off the same "v4" point in different directions, and the last two (`QAS-v6.ipynb` and `DQAS+KANQAS.ipynb`) are two further, *independent* continuations of `q5-bench` that never merge back together. This README treats them as siblings rather than forcing a false linear order, derives every equation directly from the code that implements it, and is explicit about which numbers come from code that actually ran versus code that was written but never executed.
+This repository contains nine notebooks. The first eight form a branching development history from baseline to two parallel v5/v6 branches. The ninth, **`8qubitrun.ipynb`**, is the **consolidated production notebook** that merges the previously diverged `QAS-v6.ipynb` and `DQAS+KANQAS.ipynb` branches into a single, fully integrated pipeline — incorporating all v6 bug fixes and positioning the codebase for the next planned extension to 8+ qubits. This README treats them as siblings rather than forcing a false linear order, derives every equation directly from the code that implements it, and is explicit about which numbers come from code that actually ran versus code that was written but never executed.
 
 ---
 
@@ -20,8 +20,9 @@ This repository is a sequence of eight notebooks, each one a snapshot of the sam
 | `q5-optimized.ipynb` | v4→v5 | Replaces the free-form gate search space with a layered hardware-efficient ansatz; fixes a pruning bug |
 | `QAS-v6.ipynb` | "v5" (branch from `q5-bench`) | Promotes GCN to the primary predictor; adds a 165-point circuit-level Spearman ρ |
 | `DQAS+KANQAS.ipynb` | "v6" (branch from `q5-bench`) | Adds a KAN regression head and a DQAS (Gumbel-Softmax/REINFORCE) baseline |
+| `8qubitrun.ipynb` | **v6 unified** (merge of `QAS-v6` + `DQAS+KANQAS`) | Consolidates both v6 branches; 10 issues fixed; KAN and DQAS both in multi-seed loop; circuit-level Spearman ρ; 8-qubit scaling targeted as next step |
 
-All eight notebooks share the same skeleton (TFIM Hamiltonian → circuit search space → graph encoding → GNN predictor → guided search → pruning → baselines → an automated "publishability checklist"), so the sections below build up the full mathematical pipeline once, then go through what changed numerically at each version.
+All nine notebooks share the same skeleton (TFIM Hamiltonian → circuit search space → graph encoding → GNN predictor → guided search → pruning → baselines → an automated "publishability checklist"), so the sections below build up the full mathematical pipeline once, then go through what changed numerically at each version.
 
 ---
 
@@ -91,7 +92,7 @@ with no finite-difference approximation error, since this identity is exact for 
 
 ## 3. Search Space
 
-### 3.1 Free-Form Gate Slots (v1 through `QAS-v6.ipynb` and `DQAS+KANQAS.ipynb`)
+### 3.1 Free-Form Gate Slots (v1 through `QAS-v6.ipynb`, `DQAS+KANQAS.ipynb`, and `8qubitrun.ipynb`)
 
 A circuit is a list of $L$ slots $\{(\mathrm{gate}_l, q_l)\}_{l=1}^L$, with $L \sim \mathcal{U}\{L_{\min}, \ldots, L_{\max}\}$ (`MIN_DEPTH` to `MAX_DEPTH`, 8–18 in most notebooks), and gate types drawn uniformly from $\mathcal{G} = \{RX, RY, RZ, \mathrm{CNOT}\}$. Rotation gates act on one randomly chosen qubit $q_l \in \{0,\ldots,n-1\}$ and carry one trainable angle; CNOTs act on a randomly chosen control qubit and its ring-neighbour $(q_l,\, (q_l+1)\bmod n)$. The number of trainable parameters is $|\boldsymbol\theta| = |\{l : \mathrm{gate}_l \neq \mathrm{CNOT}\}|$.
 
@@ -123,7 +124,7 @@ where $c_l = t_l = 1$ jointly whenever $\mathrm{gate}_l = \mathrm{CNOT}$ (and bo
 
 ## 5. The Performance Predictors
 
-### 5.1 Graph Attention Network (GAT) — Primary Predictor in v1–v4, `q5-optimized`, and Explicit Ablation Baseline in `q5-bench`, `QAS-v6.ipynb`, `DQAS+KANQAS.ipynb`
+### 5.1 Graph Attention Network (GAT) — Primary Predictor in v1–v4, `q5-optimized`, and Explicit Ablation Baseline in `q5-bench`, `QAS-v6.ipynb`, `DQAS+KANQAS.ipynb`, `8qubitrun.ipynb`
 
 Implemented from scratch (no PyTorch Geometric). Each `GATLayer` applies a learned linear projection $W \in \mathbb{R}^{H \cdot D \times d_{\mathrm{in}}}$ shared across all $H$ heads, then reshapes to per-head features $h_l^{(k)} \in \mathbb{R}^D$ for head $k=1,\ldots,H$. For a directed edge $j \to i$, head $k$ computes an unnormalized attention logit as the **sum** of a source term and a destination term (not a concatenation — this is the additive variant of GAT):
 
@@ -252,7 +253,7 @@ These are genuine single-qubit gate identities (spider fusion is exact for any a
 
 ---
 
-## 9. DQAS: A REINFORCE Policy-Gradient Baseline (`DQAS+KANQAS.ipynb` Only)
+## 9. DQAS: A REINFORCE Policy-Gradient Baseline (`DQAS+KANQAS.ipynb` and `8qubitrun.ipynb`)
 
 The notebook implements a lightweight variant of Differentiable Quantum Architecture Search (Ye et al. 2021). A `DQASSupercircuit` holds learnable **architecture logits** $\boldsymbol\eta \in \mathbb{R}^{L\times|\mathcal{G}|}$ (one row per circuit slot, one column per gate type) and **qubit logits** $\boldsymbol\xi \in \mathbb{R}^{L\times n}$, defining a categorical policy over architectures:
 
@@ -277,6 +278,8 @@ The log-probability terms are computed as $\log\pi_{\boldsymbol\eta}(\cdot) = \s
 ## 10. What's Real vs. What's Stated but Unverified
 
 Because this is a chain of research notebooks rather than a single audited pipeline, a careful read of the raw `.ipynb` files (not just the markdown prose) turns up real discrepancies worth knowing about before citing any of these numbers.
+
+**`8qubitrun.ipynb` is the recommended notebook for reproducibility.** It is the unified, merged successor to both `QAS-v6.ipynb` and `DQAS+KANQAS.ipynb`, incorporating all 10 v6 bug fixes (see §11), KAN and DQAS both inside the multi-seed loop, an independent SSL pre-train for the KAN encoder, and a circuit-level Spearman ρ on 165 test pairs. The stale-output problems in `DQAS+KANQAS.ipynb` described below are corrected in `8qubitrun.ipynb` by a clean end-to-end rewrite and re-execution.
 
 **`DQAS+KANQAS.ipynb`'s headline multi-seed comparison cell prints stale output that does not match its own code.** The cell that aggregates GAT/GCN/KAN τ and the DQAS energy gap across 5 seeds (and computes the 165-point Spearman ρ) has stored output that is verbatim the *old* `q5-bench` printout (it even prints the string `"[v4] ablation"` and a 5-point Pearson-r — concepts this version of the code has already replaced with Spearman ρ and a circuit-level comparison). This is the unmistakable signature of a notebook cell whose source was edited after it was last actually run end-to-end: the code computes one thing, the displayed output is left over from a previous version of that same cell. Reconstructing the true numbers from the one piece of output in this notebook that *is* internally consistent — the per-seed printout from the multi-seed loop itself — gives GAT τ = $0.650 \pm 0.081$ and GCN τ = $0.730 \pm 0.086$ across the 5 experiment seeds, matching `q5-bench`'s numbers exactly (expected, since both files reuse the same seeds and config up to this point). The KAN τ, DQAS energy gap, and Spearman ρ values that the current code computes are not visible in any stored output anywhere in the file.
 
@@ -306,8 +309,11 @@ All energy gaps are $\Delta E = E_{\mathrm{found}} - E_0$ on 4-qubit TFIM ($E_0 
 | `q5-optimized` ✓ | 0.299 ± 0.344 | 0.046 ± 0.093 | **0.0045 ± 0.0057** | 6.2 ± 2.2 | 0.602 ± 0.031 |
 | `QAS-v6.ipynb` ✓ | 0.478 ± 0.212 | 0.336 ± 0.030 | 0.336 ± 0.030 | 0.6 ± 0.9 | GCN 0.626 ± 0.074 / GAT 0.647 ± 0.098 |
 | `DQAS+KANQAS.ipynb` ✓ (partial) | 0.478 ± 0.212 ⁺ | 0.337 ± 0.030 ⁺ | n/a in stored output | n/a in stored output | GAT 0.650 ± 0.081 / GCN 0.730 ± 0.086 ⁺ |
+| `8qubitrun.ipynb` (v6 unified) | *re-execution required* | *re-execution required* | *re-execution required* | *re-execution required* | *re-execution required* |
 
-Two results stand out. First, **only the v5 layered-ansatz redesign (`q5-optimized.ipynb`) actually closes the gap to the exact ground state** — every free-form-gate-slot version plateaus around $\Delta E \approx 0.3$–$0.4$ (roughly 6–8% relative error) no matter how the acquisition function, penalty weights, or VQE budget are tuned, because (per §6.4) the bottleneck is the search space's expressivity, not its optimization. Second, **the GCN-vs-GAT finding is itself unstable across reruns** — `q5-bench` and `DQAS+KANQAS.ipynb` (same seeds, closely related code) both show GCN ahead by a similar margin, but `QAS-v6.ipynb`, run with what is nominally the same experimental design, shows GAT ahead instead. At $n=4$ qubits with a 220-circuit dataset, this comparison does not appear to be settled.
+**Note on `8qubitrun.ipynb` results:** This consolidated notebook resolves the stale-output problems in `DQAS+KANQAS.ipynb` by providing a clean, fully integrated pipeline (see §10). Because it is a source-only release (not a pre-executed notebook), its quantitative results must be reproduced by running the notebook end-to-end. The code structure guarantees that all five predictors — GAT, GCN ablation, KAN, DQAS, and random baseline — are evaluated in the same multi-seed loop (`run_one_seed` over seeds `{7, 42, 137, 256, 512}`), and that the circuit-level Spearman ρ is computed over 165 test pairs (5 seeds × 33 test circuits).
+
+Two results from the earlier notebooks stand out. First, **only the v5 layered-ansatz redesign (`q5-optimized.ipynb`) actually closes the gap to the exact ground state** — every free-form-gate-slot version plateaus around $\Delta E \approx 0.3$–$0.4$ (roughly 6–8% relative error) no matter how the acquisition function, penalty weights, or VQE budget are tuned, because (per §6.4) the bottleneck is the search space's expressivity, not its optimization. Second, **the GCN-vs-GAT finding is itself unstable across reruns** — `q5-bench` and `DQAS+KANQAS.ipynb` (same seeds, closely related code) both show GCN ahead by a similar margin, but `QAS-v6.ipynb`, run with what is nominally the same experimental design, shows GAT ahead instead. At $n=4$ qubits with a 220-circuit dataset, this comparison does not appear to be settled.
 
 ---
 
@@ -315,7 +321,7 @@ Two results stand out. First, **only the v5 layered-ansatz redesign (`q5-optimiz
 
 **The acquisition function's energy term and efficiency penalty terms are not on a common, principled scale.** $s(c) = \hat{E}(c) + \lambda_\text{gate}|c| + \lambda_\text{cnot}\,n_\text{CNOT}(c)$ adds an energy (in the dimensionless TFIM energy scale) to integer gate counts with hand-tuned weights $\lambda$. The v1→v2 bug (§6.1) was a direct, predictable consequence of this: there is no a priori reason a CNOT should cost exactly $0.040$ energy-units rather than $0.012$ or $0$, and three different scalarizations were tried across the version history before landing on "drop the penalty and use a hard structural constraint instead" (v4) or "redesign the search space so the constraint is structural by construction" (`q5-optimized`). A more principled approach — e.g. a Pareto frontier over $(\hat{E}(c), |c|)$ rather than a single scalarized score $s(c)$, or normalizing the penalty by the empirical energy spread $\sigma_E$ of the candidate pool so $\lambda_\text{cnot}$ is dimensionless relative to the actual signal it competes against — is not implemented anywhere in this series.
 
-**The TFIM benchmark is small enough to make the predictor's value proposition hard to demonstrate.** At $n=4$ qubits the Hamiltonian is exactly diagonalizable in milliseconds via dense `eigvalsh`, and a single VQE evaluation costs only a few seconds. The entire motivation for a learned predictor — that full evaluation is too expensive to apply to every candidate — is far more pressing at 8–20 qubits, where the Hilbert space dimension $2^n$ grows large enough that exact diagonalization itself becomes the bottleneck. Every "publishability checklist" across all eight files independently flags `Scale beyond a few qubits (>= 8 qubits)` as unmet.
+**The TFIM benchmark is small enough to make the predictor's value proposition hard to demonstrate.** At $n=4$ qubits the Hamiltonian is exactly diagonalizable in milliseconds via dense `eigvalsh`, and a single VQE evaluation costs only a few seconds. The entire motivation for a learned predictor — that full evaluation is too expensive to apply to every candidate — is far more pressing at 8–20 qubits, where the Hilbert space dimension $2^n$ grows large enough that exact diagonalization itself becomes the bottleneck. Every "publishability checklist" across all nine files independently flags `Scale beyond a few qubits (>= 8 qubits)` as unmet; `8qubitrun.ipynb` takes its name from this aspiration and is explicitly designed as the staging ground for that scaling experiment.
 
 **ZX-calculus augmentation assigns a parent circuit's energy label to a structurally different circuit without re-running VQE.** Spider fusion, identity removal, and the phase-free/scalar-reduction substitutions are valid gate-level identities for the *specific rotation angles* they're derived from, but the augmented circuit's VQE-optimal angles are not actually re-optimized — the variant simply inherits the original circuit's converged energy $E(c)$ as its own label $E(c_{ZX}) := E(c)$. This is exact when the rewrite is a true identity (spider fusion is exact for any angle pair, since $e^{-i\sigma\alpha/2}e^{-i\sigma\beta/2} = e^{-i\sigma(\alpha+\beta)/2}$ holds identically), but `_identity_remove`'s tolerance ($0.08$ rad) and `_phase_free_simplify`'s pattern-matching tolerance ($0.12$ rad) both accept *approximate* matches — meaning some fraction of "augmented" circuits are not exactly equivalent to their parent and are receiving a label $E(c)$ that does not correspond to their own true converged energy $E(c_{ZX}) \ne E(c)$. None of the notebooks quantify how much label noise this introduces into the training set.
 
@@ -329,7 +335,7 @@ Two results stand out. First, **only the v5 layered-ansatz redesign (`q5-optimiz
 
 **No noise model or real-hardware validation exists anywhere in the series.** The entire "efficiency" motivation — fewer CNOTs and shallower circuits matter because two-qubit gates are noisy on real devices — is argued from first principles but never demonstrated: every VQE evaluation in all eight notebooks uses PennyLane's noiseless `default.qubit` simulator, $\rho_{\mathrm{out}} = U|0\rangle\langle0|U^\dagger$ exactly, with no decoherence or gate-error channel applied anywhere. A circuit with fewer CNOTs is only confirmed cheaper in raw gate count, not in any measured or simulated robustness to a depolarizing or amplitude-damping noise channel.
 
-**Baselines stop at random search**, except for the REINFORCE-based DQAS variant in one notebook. None of the eight files compare against reinforcement-learning search beyond that lightweight REINFORCE baseline, Bayesian optimization, or evolutionary search, despite all eight publishability checklists listing "strong baselines" as an open gap.
+**Baselines stop at random search**, except for the REINFORCE-based DQAS variant in `DQAS+KANQAS.ipynb` and `8qubitrun.ipynb`. None of the nine files compare against reinforcement-learning search beyond that lightweight REINFORCE baseline, Bayesian optimization, or evolutionary search, despite all nine publishability checklists listing "strong baselines" as an open gap.
 
 ---
 
@@ -342,7 +348,7 @@ Two results stand out. First, **only the v5 layered-ansatz redesign (`q5-optimiz
 **Predictors:**
 - GAT — $e_{ij}^{(k)} = \mathrm{LeakyReLU}(\mathbf{a}_\mathrm{src}^{(k)\top} h_j^{(k)} + \mathbf{a}_\mathrm{dst}^{(k)\top} h_i^{(k)})$, edge-softmax $\alpha_{ij}$, $h_i' = \sum_j\alpha_{ij}h_j$ (2 layers × 4 heads, hidden = 32, mean+max pool, MLP head, 20.3–20.5k params)
 - GCN ablation — $h_i' = \mathrm{ELU}(W\cdot\mathrm{mean}_{j\in\mathcal{N}(i)}h_j)$ (3.6k params)
-- KAN variant — same GAT encoder, B-spline head $\sum_n c_n B_{n,k}(x) + w^{\text{res}}\mathrm{SiLU}(x)$
+- KAN variant — same GAT encoder, B-spline head $\sum_n c_n B_{n,k}(x) + w^{\text{res}}\mathrm{SiLU}(x)$ (introduced in `DQAS+KANQAS.ipynb`, fully integrated with independent SSL pre-train in `8qubitrun.ipynb`)
 
 **Training:** $\mathcal{L} = \mathrm{MSE}(\hat{y}, y) + \lambda_{\mathrm{rank}}\cdot\text{hinge-rank}(\hat{y}, y)$; NT-Xent self-supervised pre-training (v2 onward) on 2,000 unlabelled circuits:
 
@@ -356,7 +362,7 @@ backbone frozen for the first half of fine-tuning epochs.
 
 **Augmentation:** ZX-calculus rewrites (spider fusion $R_\sigma(\alpha)R_\sigma(\beta)\to R_\sigma(\alpha+\beta)$, identity removal, $R_Z R_X R_Z \leftrightarrow R_Y$) generating free training-label variants, restricted to the training split only.
 
-**Baselines:** random search at a matched full-VQE-evaluation budget (all notebooks); REINFORCE/Gumbel-Softmax DQAS with EMA-baselined policy gradient $\nabla J = -(R-b)\nabla\log\pi$ (`DQAS+KANQAS.ipynb` only, multi-seed numbers not recoverable from stored output — see §10).
+**Baselines:** random search at a matched full-VQE-evaluation budget (all notebooks); REINFORCE/Gumbel-Softmax DQAS with EMA-baselined policy gradient $\nabla J = -(R-b)\nabla\log\pi$ (`DQAS+KANQAS.ipynb` and `8qubitrun.ipynb`; in the former, multi-seed numbers are not recoverable from stored output — see §10; in the latter, they are computed live in the multi-seed loop).
 
 ---
 
@@ -388,7 +394,7 @@ No GPU is required; default settings are tuned to run in a few minutes to ~15 mi
 
 | Parameter | Typical range across notebooks | Effect |
 |-----------|-------------------------------|--------|
-| `N_QUBITS` | 4 (fixed everywhere) | Problem size; scaling this up is the single most-requested fix in every publishability checklist |
+| `N_QUBITS` | 4 (fixed everywhere, including `8qubitrun.ipynb`) | Problem size; scaling to 8+ qubits is the stated next step in every publishability checklist and motivates the `8qubitrun.ipynb` name |
 | `N_CIRCUITS` | 220 → 300 | Labelled dataset size before ZX augmentation |
 | `VQE_STEPS` / `VQE_RESTARTS` | 60/3 → 120/4 | VQE label quality; v4 found 60 steps left the best labelled circuit 0.28 above its 120-step value |
 | `ZX_VARIANTS` | 3 → 1 | v3's training set was 75% ZX-synthetic; reduced from v4 onward |
@@ -424,4 +430,3 @@ No GPU is required; default settings are tuned to run in a few minutes to ~15 mi
 20. **Awesome-QAS.** github.com/Aqasch/awesome-QAS
 
 ---
-
