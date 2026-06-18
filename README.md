@@ -51,11 +51,11 @@ over the *outer* discrete architecture space, where each evaluation of the objec
 
 Used in all eight notebooks, on an open chain of $n$ qubits:
 
-$$H_{\mathrm{TFIM}} = -J\sum_{i=0}^{n-2} Z_i Z_{i+1} \;-\; h\sum_{i=0}^{n-1} X_i$$
+$$H_{TFIM} = -J\sum_{i=0}^{n-2} Z_i Z_{i+1} \;-\; h\sum_{i=0}^{n-1} X_i$$
 
 with $J = h = 1.0$ and $n = 4$ throughout (Hilbert space dimension $2^4 = 16$). $H$ is built as a PennyLane `qml.Hamiltonian`, converted to its dense matrix representation, and diagonalized exactly:
 
-$$E_0 = \lambda_{\min}\bigl(H_{\mathrm{TFIM}}\bigr) = \min_k \lambda_k, \qquad H_{\mathrm{TFIM}}\,|\phi_k\rangle = \lambda_k\,|\phi_k\rangle$$
+$$E_0 = \lambda_{\min}\bigl(H_{TFIM}\bigr) = \min_k \lambda_k, \qquad H_{TFIM}\,|\phi_k\rangle = \lambda_k\,|\phi_k\rangle$$
 
 via `numpy.linalg.eigvalsh`. At $n=4$, $E_0 = -4.758770$ in every notebook (it depends only on $J, h, n$, which never change across the series). The **energy gap** reported everywhere is the non-negative quantity
 
@@ -69,7 +69,7 @@ Added in `q5-bench`, `QAS-v6.ipynb`, and `DQAS+KANQAS.ipynb` as a second task to
 
 $$H_{\mathrm{Heis}} = -J\sum_{i=0}^{n-2}\bigl(X_iX_{i+1} + Y_iY_{i+1} + Z_iZ_{i+1}\bigr)$$
 
-At $n=4$, $J=1$, $E_0^{\mathrm{Heis}} = -3.000000$. This benchmark is only ever run for a **single seed** ("for speed"), so it is a sanity check, not a statistically powered second result — see §11.
+At $n=4$, $J=1$, $E_0^{\text{Heis}} = -3.000000$. This benchmark is only ever run for a **single seed** ("for speed"), so it is a sanity check, not a statistically powered second result — see §11.
 
 ### 2.3 Local Cost Function and the Two-Phase VQE Schedule (Barren-Plateau Mitigation, v2 Onward)
 
@@ -93,17 +93,17 @@ with no finite-difference approximation error, since this identity is exact for 
 
 ### 3.1 Free-Form Gate Slots (v1 through `QAS-v6.ipynb` and `DQAS+KANQAS.ipynb`)
 
-A circuit is a list of $L$ slots $\{(\mathrm{gate}_l, q_l)\}_{l=1}^L$, with $L \sim \mathcal{U}\{\mathrm{MIN\_DEPTH}, \ldots, \mathrm{MAX\_DEPTH}\}$ (8–18 in most notebooks), and gate types drawn uniformly from $\mathcal{G} = \{RX, RY, RZ, \mathrm{CNOT}\}$. Rotation gates act on one randomly chosen qubit $q_l \in \{0,\ldots,n-1\}$ and carry one trainable angle; CNOTs act on a randomly chosen control qubit and its ring-neighbour $(q_l,\, (q_l+1)\bmod n)$. The number of trainable parameters is $|\boldsymbol\theta| = |\{l : \mathrm{gate}_l \neq \mathrm{CNOT}\}|$.
+A circuit is a list of $L$ slots $\{(\mathrm{gate}_l, q_l)\}_{l=1}^L$, with $L \sim \mathcal{U}\{\text{MIN\_DEPTH}, \ldots, \text{MAX\_DEPTH}\}$ (8–18 in most notebooks), and gate types drawn uniformly from $\mathcal{G} = \{RX, RY, RZ, \mathrm{CNOT}\}$. Rotation gates act on one randomly chosen qubit $q_l \in \{0,\ldots,n-1\}$ and carry one trainable angle; CNOTs act on a randomly chosen control qubit and its ring-neighbour $(q_l,\, (q_l+1)\bmod n)$. The number of trainable parameters is $|\boldsymbol\theta| = |\{l : \mathrm{gate}_l \neq \mathrm{CNOT}\}|$.
 
-From v4 onward, `sample_circuit` enforces a hard floor $|\{l : \mathrm{gate}_l = \mathrm{CNOT}\}| \ge \mathrm{MIN\_CNOTS} = 2$: if a randomly sampled circuit has fewer CNOTs than the floor, early non-CNOT slots are overwritten with CNOTs until the floor is met. This exists because v1–v3 routinely produced "winning" circuits with **zero** CNOTs. A CNOT-free circuit factorizes as $U = \bigotimes_{i=1}^n u_i(\theta_i)$, a product of independent single-qubit unitaries, so $|\psi(\boldsymbol\theta)\rangle = \bigotimes_i u_i(\theta_i)|0\rangle$ is a separable (unentangled) product state for *any* choice of $\boldsymbol\theta$. The TFIM ground state at $J=h$ has nonzero two-point correlations $\langle Z_iZ_{i+1}\rangle \neq \langle Z_i\rangle\langle Z_{i+1}\rangle$ and is provably entangled, so no product state — however well its single-qubit angles are tuned — can reach $\Delta E = 0$; a 0-CNOT circuit is suboptimal by construction for this Hamiltonian, regardless of optimization quality.
+From v4 onward, `sample_circuit` enforces a hard floor $|\{l : \mathrm{gate}_l = \mathrm{CNOT}\}| \ge \text{MIN\_CNOTS} = 2$: if a randomly sampled circuit has fewer CNOTs than the floor, early non-CNOT slots are overwritten with CNOTs until the floor is met. This exists because v1–v3 routinely produced "winning" circuits with **zero** CNOTs. A CNOT-free circuit factorizes as $U = \bigotimes_{i=1}^n u_i(\theta_i)$, a product of independent single-qubit unitaries, so $|\psi(\boldsymbol\theta)\rangle = \bigotimes_i u_i(\theta_i)|0\rangle$ is a separable (unentangled) product state for *any* choice of $\boldsymbol\theta$. The TFIM ground state at $J=h$ has nonzero two-point correlations $\langle Z_iZ_{i+1}\rangle \neq \langle Z_i\rangle\langle Z_{i+1}\rangle$ and is provably entangled, so no product state — however well its single-qubit angles are tuned — can reach $\Delta E = 0$; a 0-CNOT circuit is suboptimal by construction for this Hamiltonian, regardless of optimization quality.
 
 ### 3.2 Layered Hardware-Efficient Ansatz (`q5-optimized.ipynb` Only)
 
-This notebook redesigns the search space because the `MIN_CNOTS` floor turned out to be an incomplete fix (see §6.4). Each circuit is now a sequence of $K \sim \mathcal{U}\{\mathrm{MIN\_LAYERS},\ldots,\mathrm{MAX\_LAYERS}\} = \mathcal{U}\{2,\ldots,5\}$ layers, each layer $k$ consisting of:
+This notebook redesigns the search space because the `MIN_CNOTS` floor turned out to be an incomplete fix (see §6.4). Each circuit is now a sequence of $K \sim \mathcal{U}\{\text{MIN\_LAYERS},\ldots,\text{MAX\_LAYERS}\} = \mathcal{U}\{2,\ldots,5\}$ layers, each layer $k$ consisting of:
 
-$$\mathrm{layer}_k = \underbrace{\bigotimes_{i=0}^{n-1} g_{k,i}(\theta_{k,i})}_{\text{rotation sublayer}} \;\cdot\; \underbrace{\mathbf{1}[b_k = 1]\cdot\prod_{i=0}^{n-2}\mathrm{CNOT}(i, i+1)}_{\text{entangling sublayer}}$$
+$$\mathrm{layer}_k = \underbrace{\bigotimes_{i=0}^{n-1} g_{k,i}(\theta_{k,i})}_{\text{rotation sublayer}} \;\cdot\; \underbrace{\mathbb{1}[b_k = 1]\cdot\prod_{i=0}^{n-2}\mathrm{CNOT}(i, i+1)}_{\text{entangling sublayer}}$$
 
-where $g_{k,i} \in \{RX, RY, RZ, \mathrm{Identity}\}$ is drawn independently per qubit (skip probability `ROT_SKIP_PROB = 0.15`, i.e. $P(g_{k,i}=\mathrm{Identity})=0.15$), and $b_k \sim \mathrm{Bernoulli}(\mathrm{ENTANGLE\_PROB}=0.85)$ decides whether the *entire* fixed nearest-neighbor CNOT ladder $\mathrm{CNOT}(0,1)\cdot\mathrm{CNOT}(1,2)\cdot\mathrm{CNOT}(2,3)$ is appended in full or omitted entirely — never partially. QAS now searches over $K$, $\{b_k\}$, and $\{g_{k,i}\}$; the entangling structure itself, once included, is fixed. This guarantees that whenever a layer entangles at all, the entanglement graph spans the whole chain in one connected component, rather than relying on a bare CNOT-count floor that can be satisfied by disconnected or redundant gate placements (see §6.4 for why that distinction matters numerically). Downstream code (graph encoding, VQE, ZX augmentation, pruning) is unchanged — every circuit is still flattened to the same `(gate, qubits)` slot list before being consumed.
+where $g_{k,i} \in \{RX, RY, RZ, \mathrm{Identity}\}$ is drawn independently per qubit (skip probability `ROT_SKIP_PROB = 0.15`, i.e. $P(g_{k,i}=\mathrm{Identity})=0.15$), and $b_k \sim \mathrm{Bernoulli}(\text{ENTANGLE\_PROB}=0.85)$ decides whether the *entire* fixed nearest-neighbor CNOT ladder $\mathrm{CNOT}(0,1)\cdot\mathrm{CNOT}(1,2)\cdot\mathrm{CNOT}(2,3)$ is appended in full or omitted entirely — never partially. QAS now searches over $K$, $\{b_k\}$, and $\{g_{k,i}\}$; the entangling structure itself, once included, is fixed. This guarantees that whenever a layer entangles at all, the entanglement graph spans the whole chain in one connected component, rather than relying on a bare CNOT-count floor that can be satisfied by disconnected or redundant gate placements (see §6.4 for why that distinction matters numerically). Downstream code (graph encoding, VQE, ZX augmentation, pruning) is unchanged — every circuit is still flattened to the same `(gate, qubits)` slot list before being consumed.
 
 ---
 
@@ -127,9 +127,9 @@ where $c_l = t_l = 1$ jointly whenever $\mathrm{gate}_l = \mathrm{CNOT}$ (and bo
 
 Implemented from scratch (no PyTorch Geometric). Each `GATLayer` applies a learned linear projection $W \in \mathbb{R}^{H \cdot D \times d_{\mathrm{in}}}$ shared across all $H$ heads, then reshapes to per-head features $h_l^{(k)} \in \mathbb{R}^D$ for head $k=1,\ldots,H$. For a directed edge $j \to i$, head $k$ computes an unnormalized attention logit as the **sum** of a source term and a destination term (not a concatenation — this is the additive variant of GAT):
 
-$$e_{ij}^{(k)} = \mathrm{LeakyReLU}_{0.2}\!\Bigl(\mathbf{a}^{(k)}_{\mathrm{src}}{}^{\!\top} h_j^{(k)} \;+\; \mathbf{a}^{(k)}_{\mathrm{dst}}{}^{\!\top} h_i^{(k)}\Bigr)$$
+$$e_{ij}^{(k)} = \mathrm{LeakyReLU}_{0.2}\!\Bigl(\mathbf{a}_\mathrm{src}^{(k)\top} h_j^{(k)} \;+\; \mathbf{a}_\mathrm{dst}^{(k)\top} h_i^{(k)}\Bigr)$$
 
-where $\mathbf{a}^{(k)}_{\mathrm{src}}, \mathbf{a}^{(k)}_{\mathrm{dst}} \in \mathbb{R}^D$ are learned per-head attention vectors. The logits are normalized with an edge-softmax over all of $i$'s incoming neighbours $\mathcal{N}(i)$:
+where $\mathbf{a}_\mathrm{src}^{(k)}, \mathbf{a}_\mathrm{dst}^{(k)} \in \mathbb{R}^D$ are learned per-head attention vectors. The logits are normalized with an edge-softmax over all of $i$'s incoming neighbours $\mathcal{N}(i)$:
 
 $$\alpha_{ij}^{(k)} = \frac{\exp\!\bigl(e_{ij}^{(k)} - \max_{j'\in\mathcal{N}(i)} e_{ij'}^{(k)}\bigr)}{\displaystyle\sum_{j'\in\mathcal{N}(i)} \exp\!\bigl(e_{ij'}^{(k)} - \max_{j''\in\mathcal{N}(i)} e_{ij''}^{(k)}\bigr)}$$
 
@@ -149,13 +149,13 @@ Introduced in `q5-bench` as a no-attention baseline, reused in `QAS-v6.ipynb` an
 
 $$h_i' = \mathrm{ELU}\!\left(W\cdot\frac{1}{|\mathcal{N}(i)|}\sum_{j \in \mathcal{N}(i)} h_j\right)$$
 
-i.e. $\alpha_{ij} \equiv 1/|\mathcal{N}(i)|$ for every edge regardless of node content — the same two-layer + mean/max-pool + MLP-head structure as the GAT predictor, but with only 3,585 parameters (no per-head attention projections $\mathbf{a}^{(k)}_{\mathrm{src}}, \mathbf{a}^{(k)}_{\mathrm{dst}}$). The point of including it is to isolate whether *content-dependent attention* specifically — not just "any message-passing graph network" — is what drives the predictor's ranking quality.
+i.e. $\alpha_{ij} \equiv 1/|\mathcal{N}(i)|$ for every edge regardless of node content — the same two-layer + mean/max-pool + MLP-head structure as the GAT predictor, but with only 3,585 parameters (no per-head attention projections $\mathbf{a}_\mathrm{src}^{(k)}, \mathbf{a}_\mathrm{dst}^{(k)}$). The point of including it is to isolate whether *content-dependent attention* specifically — not just "any message-passing graph network" — is what drives the predictor's ranking quality.
 
 ### 5.3 KAN (Kolmogorov-Arnold Network) Head
 
 Introduced in `DQAS+KANQAS.ipynb` as a drop-in replacement for the MLP regression head, with the GAT encoder ($g_1, g_2$) left unchanged; only the head after pooling differs. Each `KANLinear` layer replaces a fixed-activation linear map with a **learnable B-spline activation per (input, output) connection** — the defining idea of a KAN, motivated by the Kolmogorov–Arnold representation theorem (any continuous multivariate function decomposes into sums/compositions of continuous univariate functions). A fixed uniform grid of knots $t_0 < t_1 < \cdots < t_{m}$ is built over $[-1, 1]$, extended by `spline_order` $= k = 3$ steps at each end so boundary basis functions are well-defined. The B-spline basis is evaluated by the **Cox–de Boor recursion**: order-0 (indicator) basis functions
 
-$$B_{i,0}(x) = \mathbf{1}\bigl[t_i \le x < t_{i+1}\bigr]$$
+$$B_{i,0}(x) = \mathbb{1}\bigl[t_i \le x < t_{i+1}\bigr]$$
 
 (with an explicit boundary patch so $x$ landing exactly on the rightmost knot is captured by the last bin rather than falling into a zero-measure gap), and for orders $r = 1,\ldots,k$ the standard recursive blend
 
@@ -163,9 +163,9 @@ $$B_{i,r}(x) = \frac{x - t_i}{t_{i+r} - t_i}\,B_{i,r-1}(x) \;+\; \frac{t_{i+r+1}
 
 (division-by-zero guarded with a small $\epsilon = 10^{-8}$ clamp on each denominator). The layer's output for input $x \in \mathbb{R}^{d_{\mathrm{in}}}$ is then
 
-$$\mathrm{KANLinear}(x)_{o} = \sum_{i=1}^{d_{\mathrm{in}}}\sum_{n=1}^{n_{\mathrm{basis}}} c_{o,i,n}\, B_{n,k}(x_i) \;+\; \sum_{i=1}^{d_{\mathrm{in}}} w^{\mathrm{res}}_{o,i}\cdot\mathrm{SiLU}(x_i)$$
+$$\mathrm{KANLinear}(x)_{o} = \sum_{i=1}^{d_{\mathrm{in}}}\sum_{n=1}^{n_{\mathrm{basis}}} c_{o,i,n}\, B_{n,k}(x_i) \;+\; \sum_{i=1}^{d_{\mathrm{in}}} w^{\text{res}}_{o,i}\cdot\mathrm{SiLU}(x_i)$$
 
-with $n_{\mathrm{basis}} = \mathrm{grid\_size} + k = 5 + 3 = 8$ learned spline coefficients $c_{o,i,n}$ per connection, plus a learned residual scale $w^{\mathrm{res}}_{o,i}$ on a fixed SiLU nonlinearity $\mathrm{SiLU}(x) = x\cdot\sigma(x)$ (this residual term is the standard KAN stabilization trick that keeps gradients well-behaved before the splines are trained). Two `KANLinear` layers (pool-dim $2D = 64$ → hidden $32$ → $1$) replace the two-layer MLP head, with an ELU nonlinearity between them.
+with $n_{\mathrm{basis}} = \text{grid\_size} + k = 5 + 3 = 8$ learned spline coefficients $c_{o,i,n}$ per connection, plus a learned residual scale $w^{\text{res}}_{o,i}$ on a fixed SiLU nonlinearity $\mathrm{SiLU}(x) = x\cdot\sigma(x)$ (this residual term is the standard KAN stabilization trick that keeps gradients well-behaved before the splines are trained). Two `KANLinear` layers (pool-dim $2D = 64$ → hidden $32$ → $1$) replace the two-layer MLP head, with an ELU nonlinearity between them.
 
 ### 5.4 Training Objective (All Predictors, Identical Formula Everywhere)
 
@@ -175,7 +175,7 @@ $$\mathcal{L}(\phi) = \underbrace{\frac{1}{|\mathcal{B}|}\sum_{c\in\mathcal{B}}\
 
 The ranking term sums over `RANK_PAIRS = 256` randomly sampled circuit-index pairs $P$ per epoch, with margin $m =$ `RANK_MARGIN = 0.10` and weight $\lambda_{\mathrm{rank}} =$ `RANK_WEIGHT = 1.0`. This is a margin ranking loss: it incurs zero penalty once the predicted gap between $\hat{y}_a$ and $\hat{y}_b$ correctly matches the sign of the true gap by at least margin $m$, and a linearly growing penalty otherwise — rewarding correct *order* independent of getting the absolute energy scale right, which is exactly what the downstream search needs (it only ever compares circuits to each other, never reads off an absolute number). Model selection tracks the validation-set **Kendall rank correlation**,
 
-$$\tau = \frac{(\text{# concordant pairs}) - (\text{# discordant pairs})}{\binom{N}{2}}$$
+$$\tau = \frac{(\text{concordant pairs}) - (\text{discordant pairs})}{\binom{N}{2}}$$
 
 over all $\binom{N}{2}$ pairs of validation circuits, where a pair is concordant if $\mathrm{sign}(\hat{y}_a - \hat{y}_b) = \mathrm{sign}(y_a - y_b)$; the best-$\tau$ checkpoint is restored before computing the final, reported test-set $\tau$. From v2 onward the GNN backbone ($g_1, g_2$) is frozen (`requires_grad = False`) for the first half of fine-tuning epochs and unfrozen for the second half, after being initialized from self-supervised pre-training (§5.5) — a standard frozen-then-fine-tuned transfer-learning schedule.
 
@@ -187,7 +187,7 @@ $$S_{pq} = \frac{\hat{z}_p^\top \hat{z}_q}{\tau}, \qquad p,q = 1,\ldots,2B$$
 
 with the diagonal $S_{pp}$ masked to $-\infty$ (so a sample never gets to use itself as a positive), and the loss is the standard cross-entropy over each row treating the matched partner as the only correct "class":
 
-$$\mathcal{L}_{\mathrm{NT\text{-}Xent}} = -\frac{1}{2B}\sum_{p=1}^{2B}\log\frac{\exp(S_{p,\,\mathrm{pos}(p)})}{\displaystyle\sum_{q\ne p}\exp(S_{pq})}$$
+$$\mathcal{L}_{\text{NT-Xent}} = -\frac{1}{2B}\sum_{p=1}^{2B}\log\frac{\exp(S_{p,\,\mathrm{pos}(p)})}{\displaystyle\sum_{q\ne p}\exp(S_{pq})}$$
 
 where $\mathrm{pos}(p)$ indexes the one positive partner of sample $p$ (view $a$ of circuit $i$ pairs with view $b$ of circuit $i$, and vice versa). The temperature was raised from `SSL_TEMP = 0.07` to `0.12` starting in `q5-bench`, because SimCLR's original $\tau = 0.07$ was tuned for batch sizes of 256 ($2\times256 - 2 = 510$ negatives per anchor); at this project's batch size of 32 ($2\times32 - 2 = 62$ negatives), $\tau = 0.07$ made the softmax in the denominator too peaked/"cold" relative to the much smaller negative pool, and training plateaued early — a legitimate, well-reasoned fix rather than an arbitrary tweak.
 
@@ -215,7 +215,7 @@ v4 goes further: it sets $\lambda_\text{gate} = \lambda_\text{cnot} = 0$ — an 
 
 ### 6.4 Why the v4 Fix Was Still Incomplete, and the v5 Redesign (`q5-optimized.ipynb`)
 
-`q5-optimized.ipynb` reports, plainly, that even with $\mathrm{MIN\_CNOTS} = 2$ every seed converged to circuits with *exactly* 2 CNOTs on a 4-qubit ring — just enough to clear the floor, not enough to connect the whole chain (2 CNOTs span at most 3 of the 4 qubits if placed in a line, and can even overlap on a ring and span fewer). The energy gap stayed pinned at roughly $0.31$ regardless of how much extra VQE budget was thrown at it, because the bottleneck was the **ansatz family's expressivity** — the set $\{|\psi(\boldsymbol\theta)\rangle : \boldsymbol\theta \in \mathbb{R}^{|\boldsymbol\theta|}\}$ reachable by these circuits simply does not contain a state close enough to the true ground state — not its optimization: no amount of additional gradient descent over $\boldsymbol\theta$ can make a fixed circuit topology represent a state outside its own reachable manifold. This is the rationale behind the layered hardware-efficient redesign in §3.2, which guarantees whole-chain entanglement (a connected entangling graph spanning all $n$ qubits) whenever a layer entangles at all. With that change, the mean energy gap dropped to $0.046 \pm 0.093$ before pruning and **$0.0045 \pm 0.0057$ after pruning** — i.e. on average the discovered circuits sit within about 0.1% of the exact ground-state energy after pruning, at the cost of much deeper raw circuits ($14.0 \pm 5.2$ gates, $6.2 \pm 2.2$ CNOTs after pruning, versus single digits in earlier versions).
+`q5-optimized.ipynb` reports, plainly, that even with $\text{MIN\_CNOTS} = 2$ every seed converged to circuits with *exactly* 2 CNOTs on a 4-qubit ring — just enough to clear the floor, not enough to connect the whole chain (2 CNOTs span at most 3 of the 4 qubits if placed in a line, and can even overlap on a ring and span fewer). The energy gap stayed pinned at roughly $0.31$ regardless of how much extra VQE budget was thrown at it, because the bottleneck was the **ansatz family's expressivity** — the set $\{|\psi(\boldsymbol\theta)\rangle : \boldsymbol\theta \in \mathbb{R}^{|\boldsymbol\theta|}\}$ reachable by these circuits simply does not contain a state close enough to the true ground state — not its optimization: no amount of additional gradient descent over $\boldsymbol\theta$ can make a fixed circuit topology represent a state outside its own reachable manifold. This is the rationale behind the layered hardware-efficient redesign in §3.2, which guarantees whole-chain entanglement (a connected entangling graph spanning all $n$ qubits) whenever a layer entangles at all. With that change, the mean energy gap dropped to $0.046 \pm 0.093$ before pruning and **$0.0045 \pm 0.0057$ after pruning** — i.e. on average the discovered circuits sit within about 0.1% of the exact ground-state energy after pruning, at the cost of much deeper raw circuits ($14.0 \pm 5.2$ gates, $6.2 \pm 2.2$ CNOTs after pruning, versus single digits in earlier versions).
 
 ---
 
@@ -233,7 +233,7 @@ repeated until a fixed point.
 
 ### 7.2 Fix (`q5-optimized.ipynb`)
 
-The tolerance is tightened to $\mathrm{tol} = \mathrm{PRUNE\_TOL} = 10^{-3}$, and — more importantly — both the pre-removal baseline $E(c)$ and the post-removal candidate $E(c_{-l})$ are **re-validated at high precision** (`PRUNE_RECHECK_STEPS = 250`, `PRUNE_RECHECK_RESTARTS = 5`) before a removal is accepted, using the cheap evaluation only as a fast pre-screen to decide which removals are even worth re-checking carefully. This stops optimization noise at the cheap step budget from masquerading as genuine structural redundancy.
+The tolerance is tightened to $\mathrm{tol} = \text{PRUNE\_TOL} = 10^{-3}$, and — more importantly — both the pre-removal baseline $E(c)$ and the post-removal candidate $E(c_{-l})$ are **re-validated at high precision** (`PRUNE_RECHECK_STEPS = 250`, `PRUNE_RECHECK_RESTARTS = 5`) before a removal is accepted, using the cheap evaluation only as a fast pre-screen to decide which removals are even worth re-checking carefully. This stops optimization noise at the cheap step budget from masquerading as genuine structural redundancy.
 
 ---
 
@@ -270,7 +270,7 @@ with reward $R_t = -E_t$ (negative VQE energy — lower energy is better, so rew
 
 $$b_t = 0.9\,b_{t-1} + 0.1\,R_t, \qquad b_0 = R_0$$
 
-The log-probability terms are computed as $\log\pi_{\boldsymbol\eta}(\cdot) = \sum_l \bigl[\mathrm{log\_softmax}(\boldsymbol\eta_l)\odot \mathrm{onehot}_l\bigr]$, i.e. the log-probability the *current* (continuously updated) policy logits assign to the architecture that was actually sampled this step — standard score-function / likelihood-ratio policy gradient. After `n_steps`, the final architecture is read off by discretizing the policy at $\arg\max$ (`discretize()`), and validated with a careful, high-precision VQE run.
+The log-probability terms are computed as $\log\pi_{\boldsymbol\eta}(\cdot) = \sum_l \bigl[\text{log\_softmax}(\boldsymbol\eta_l)\odot \mathrm{onehot}_l\bigr]$, i.e. the log-probability the *current* (continuously updated) policy logits assign to the architecture that was actually sampled this step — standard score-function / likelihood-ratio policy gradient. After `n_steps`, the final architecture is read off by discretizing the policy at $\arg\max$ (`discretize()`), and validated with a careful, high-precision VQE run.
 
 ---
 
@@ -317,9 +317,9 @@ Two results stand out. First, **only the v5 layered-ansatz redesign (`q5-optimiz
 
 **The TFIM benchmark is small enough to make the predictor's value proposition hard to demonstrate.** At $n=4$ qubits the Hamiltonian is exactly diagonalizable in milliseconds via dense `eigvalsh`, and a single VQE evaluation costs only a few seconds. The entire motivation for a learned predictor — that full evaluation is too expensive to apply to every candidate — is far more pressing at 8–20 qubits, where the Hilbert space dimension $2^n$ grows large enough that exact diagonalization itself becomes the bottleneck. Every "publishability checklist" across all eight files independently flags `Scale beyond a few qubits (>= 8 qubits)` as unmet.
 
-**ZX-calculus augmentation assigns a parent circuit's energy label to a structurally different circuit without re-running VQE.** Spider fusion, identity removal, and the phase-free/scalar-reduction substitutions are valid gate-level identities for the *specific rotation angles* they're derived from, but the augmented circuit's VQE-optimal angles are not actually re-optimized — the variant simply inherits the original circuit's converged energy $E(c)$ as its own label $E(c_{\mathrm{ZX}}) := E(c)$. This is exact when the rewrite is a true identity (spider fusion is exact for any angle pair, since $e^{-i\sigma\alpha/2}e^{-i\sigma\beta/2} = e^{-i\sigma(\alpha+\beta)/2}$ holds identically), but `_identity_remove`'s tolerance ($0.08$ rad) and `_phase_free_simplify`'s pattern-matching tolerance ($0.12$ rad) both accept *approximate* matches — meaning some fraction of "augmented" circuits are not exactly equivalent to their parent and are receiving a label $E(c)$ that does not correspond to their own true converged energy $E(c_{\mathrm{ZX}}) \ne E(c)$. None of the notebooks quantify how much label noise this introduces into the training set.
+**ZX-calculus augmentation assigns a parent circuit's energy label to a structurally different circuit without re-running VQE.** Spider fusion, identity removal, and the phase-free/scalar-reduction substitutions are valid gate-level identities for the *specific rotation angles* they're derived from, but the augmented circuit's VQE-optimal angles are not actually re-optimized — the variant simply inherits the original circuit's converged energy $E(c)$ as its own label $E(c_{ZX}) := E(c)$. This is exact when the rewrite is a true identity (spider fusion is exact for any angle pair, since $e^{-i\sigma\alpha/2}e^{-i\sigma\beta/2} = e^{-i\sigma(\alpha+\beta)/2}$ holds identically), but `_identity_remove`'s tolerance ($0.08$ rad) and `_phase_free_simplify`'s pattern-matching tolerance ($0.12$ rad) both accept *approximate* matches — meaning some fraction of "augmented" circuits are not exactly equivalent to their parent and are receiving a label $E(c)$ that does not correspond to their own true converged energy $E(c_{ZX}) \ne E(c)$. None of the notebooks quantify how much label noise this introduces into the training set.
 
-**The KAN B-spline implementation has a boundary-condition patch whose correctness is asserted, not tested.** The de Boor recursion's order-0 basis uses a half-open interval test $B_{i,0}(x) = \mathbf{1}[t_i \le x < t_{i+1}]$, which by construction assigns zero basis weight to any input landing exactly on the rightmost grid point $t_m$ (since no interval is right-closed there); the code adds a manual patch to push that boundary mass into the last bin. This is a known, standard edge case in B-spline implementations and the fix is the conventional one, but no unit test verifies the basis partition-of-unity property $\sum_i B_{i,k}(x) = 1$ holds across the full input domain $[-1, 1]$ including the boundary, so this is a plausible-looking fix rather than a verified one.
+**The KAN B-spline implementation has a boundary-condition patch whose correctness is asserted, not tested.** The de Boor recursion's order-0 basis uses a half-open interval test $B_{i,0}(x) = \mathbb{1}[t_i \le x < t_{i+1}]$, which by construction assigns zero basis weight to any input landing exactly on the rightmost grid point $t_m$ (since no interval is right-closed there); the code adds a manual patch to push that boundary mass into the last bin. This is a known, standard edge case in B-spline implementations and the fix is the conventional one, but no unit test verifies the basis partition-of-unity property $\sum_i B_{i,k}(x) = 1$ holds across the full input domain $[-1, 1]$ including the boundary, so this is a plausible-looking fix rather than a verified one.
 
 **DQAS as implemented is a REINFORCE policy-gradient variant, not gradient-based differentiable architecture search.** As discussed in §9, true DQAS backpropagates through the quantum circuit itself; this implementation instead treats VQE energy as a black-box reward for a score-function gradient estimator. REINFORCE gradients have variance that scales unfavourably with the dimensionality of the action space (here, $L\times(|\mathcal{G}|+n)$ logits) and are known to converge more slowly and noisily than true backpropagated gradients through a differentiable simulator — a legitimate, commonly used simplification given the black-box VQE evaluator, but it means the "DQAS baseline" in this repository is a weaker proxy for the method the name usually refers to in the literature, and any energy-gap comparison between "GAT-guided" and "DQAS" is really a comparison against this lighter-weight variant.
 
@@ -340,13 +340,13 @@ Two results stand out. First, **only the v5 layered-ansatz redesign (`q5-optimiz
 **Graph encoding:** directed graph, gates as nodes with feature vector $x_l = [\mathrm{onehot}(\mathrm{gate})\,\|\,c, t\,\|\,\mathrm{onehot}(q)\,\|\,(\sin\phi, \cos\phi)]$, bidirectional wire-following edges plus self-loops.
 
 **Predictors:**
-- GAT — $e_{ij}^{(k)} = \mathrm{LeakyReLU}(\mathbf{a}^{(k)}_{\mathrm{src}}{}^\top h_j^{(k)} + \mathbf{a}^{(k)}_{\mathrm{dst}}{}^\top h_i^{(k)})$, edge-softmax $\alpha_{ij}$, $h_i' = \sum_j\alpha_{ij}h_j$ (2 layers × 4 heads, hidden = 32, mean+max pool, MLP head, 20.3–20.5k params)
+- GAT — $e_{ij}^{(k)} = \mathrm{LeakyReLU}(\mathbf{a}_\mathrm{src}^{(k)\top} h_j^{(k)} + \mathbf{a}_\mathrm{dst}^{(k)\top} h_i^{(k)})$, edge-softmax $\alpha_{ij}$, $h_i' = \sum_j\alpha_{ij}h_j$ (2 layers × 4 heads, hidden = 32, mean+max pool, MLP head, 20.3–20.5k params)
 - GCN ablation — $h_i' = \mathrm{ELU}(W\cdot\mathrm{mean}_{j\in\mathcal{N}(i)}h_j)$ (3.6k params)
-- KAN variant — same GAT encoder, B-spline head $\sum_n c_n B_{n,k}(x) + w^{\mathrm{res}}\mathrm{SiLU}(x)$
+- KAN variant — same GAT encoder, B-spline head $\sum_n c_n B_{n,k}(x) + w^{\text{res}}\mathrm{SiLU}(x)$
 
-**Training:** $\mathcal{L} = \mathrm{MSE}(\hat{y}, y) + \lambda_{\mathrm{rank}}\cdot\mathrm{hinge\text{-}rank}(\hat{y}, y)$; NT-Xent self-supervised pre-training (v2 onward) on 2,000 unlabelled circuits:
+**Training:** $\mathcal{L} = \mathrm{MSE}(\hat{y}, y) + \lambda_{\mathrm{rank}}\cdot\text{hinge-rank}(\hat{y}, y)$; NT-Xent self-supervised pre-training (v2 onward) on 2,000 unlabelled circuits:
 
-$$\mathcal{L}_{\mathrm{NT\text{-}Xent}} = -\log\frac{\exp(S_{p,\mathrm{pos}}/\tau)}{\sum_{q\ne p}\exp(S_{pq}/\tau)}$$
+$$\mathcal{L}_{\text{NT-Xent}} = -\log\frac{\exp(S_{p,\mathrm{pos}}/\tau)}{\sum_{q\ne p}\exp(S_{pq}/\tau)}$$
 
 backbone frozen for the first half of fine-tuning epochs.
 
