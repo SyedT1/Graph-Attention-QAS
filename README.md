@@ -15,9 +15,11 @@ advantage, hardware-noise robustness, or large-system scalability.
 
 ## Current Kaggle experiment suite
 
-The seven notebooks in [`kaggle_notebooks/`](kaggle_notebooks/) are the recommended
-entry point. Each embeds the complete shared implementation and can run in a fresh
-Kaggle session without cloning the repository.
+The seven notebook templates in [`kaggle_notebooks/`](kaggle_notebooks/) are the
+recommended entry point. Each embeds the complete shared implementation and can run in
+a fresh Kaggle session without cloning the repository. Stored Kaggle executions and
+their exported artifacts are under
+[`Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/`](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/).
 
 | Order | Notebook | Purpose | Principal outputs |
 |---:|---|---|---|
@@ -43,7 +45,7 @@ record is in
 5. Save `/kaggle/working/qas_materials/` as a Kaggle Dataset and attach it to subsequent
    notebooks.
 
-Publication mode generates:
+Publication mode is configured to generate:
 
 - Hubbard: $24\times5\times9=1080$ base VQE labels;
 - LiH: $18\times5\times9=810$ base VQE labels;
@@ -54,6 +56,140 @@ Publication mode generates:
 Label generation checkpoints after every interaction or bond length. Quick-mode caches
 have distinct `_fast.csv` filenames. Dataset schema
 `2026-09-v3-pauli-factor-graph` rejects incompatible older caches.
+
+## Executed results: notebooks 00–05
+
+These values were read from the stored, full-mode Kaggle executions—not copied from
+the notebook templates. Notebooks 00–05 completed every code cell without a stored
+exception. Notebook 06 is still running and **no LiH result is included below**.
+
+| Notebook | Execution status | Stored evidence |
+|---:|---|---|
+| 00 | Complete | [executed notebook](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/00_build_hubbard_multiseed_dataset/00-build-hubbard-multiseed-dataset.ipynb), [dataset](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/00_build_hubbard_multiseed_dataset/qas_materials/hubbard_dense_multiseed.csv), [manifest](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/00_build_hubbard_multiseed_dataset/qas_materials/hubbard_dense_multiseed_manifest.json) |
+| 01 | Complete | [executed notebook](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/01_multiseed_bootstrap_statistics/01-multiseed-bootstrap-statistics.ipynb) |
+| 02 | Complete | [executed notebook](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/02-unseen-architecture-and-parameter-test/02-unseen-architecture-and-parameter-test.ipynb), [result table](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/02-unseen-architecture-and-parameter-test/unseen_architecture_parameter_results.txt) |
+| 03 | Complete | [executed notebook](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/03_vqe_convergence_check/03-vqe-convergence-check.ipynb), [high-precision labels](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/03_vqe_convergence_check/qas_materials/vqe_high_precision_check.csv), [stability table](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/03_vqe_convergence_check/qas_materials/vqe_ranking_stability.csv) |
+| 04 | Complete | [executed notebook](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/04-trainable-gat-kan-ablation/04-trainable-gat-kan-ablation.ipynb) |
+| 05 | Complete | [executed notebook](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/05-dense-hubbard-sweep-analysis/05-dense-hubbard-sweep-analysis.ipynb), [gap summary](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/05-dense-hubbard-sweep-analysis/qas_materials/dense_hubbard_gap_summary.csv), [rank matrix](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/05-dense-hubbard-sweep-analysis/qas_materials/dense_hubbard_rank_correlation.csv) |
+| 06 | Pending | Excluded from this results summary |
+
+The executed environment reported PennyLane 0.43.3, PyTorch 2.10.0+cu128, and a CUDA
+device. The PennyLane warning about JAX 0.7.2 does not affect these runs because the VQE
+QNodes use the Autograd interface.
+
+### Dataset and representation checks
+
+Notebook 00 produced exactly 1,080 unique rows: 120 distinct circuits, formed from 24
+architectures for each of five architecture seeds, evaluated at nine interaction
+values. Every label used 60 Adam steps and two restarts. The largest Pauli-factor-graph
+round-trip coefficient error over the nine Hamiltonians was
+$8.88\times10^{-16}$, well below the asserted $10^{-10}$ tolerance.
+
+| $U/t$ | Best gap (Ha) | Median gap (Ha) | Mean gap (Ha) | Worst gap (Ha) |
+|---:|---:|---:|---:|---:|
+| 0 | 0.000011 | 0.006298 | 0.494556 | 2.000000 |
+| 1 | 0.000092 | 0.068411 | 0.456405 | 1.561553 |
+| 2 | 0.000050 | 0.239824 | 0.420117 | 1.236068 |
+| 3 | 0.000019 | 0.334603 | 0.387149 | 1.000000 |
+| 4 | 0.000002 | 0.338695 | 0.342756 | 0.828427 |
+| 5 | 0.000100 | 0.313677 | 0.305507 | 0.701562 |
+| 6 | 0.000022 | 0.282542 | 0.272621 | 0.605551 |
+| 7 | 0.000066 | 0.253532 | 0.245753 | 0.531129 |
+| 8 | 0.000047 | 0.228586 | 0.224644 | 0.472136 |
+
+![Executed dense Hubbard gap and rank-correlation analysis](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/05-dense-hubbard-sweep-analysis/__results___files/__results___6_0.png)
+
+### Transfer tests
+
+Notebook 02 used 432 training rows, 24 validation rows, and a 336-row union of the
+three evaluation quadrants. Its single trained joint factor-GAT produced:
+
+| Evaluation quadrant | Rows | Hamiltonians | Kendall $\tau_b$ | Spearman $\rho$ |
+|---|---:|---:|---:|---:|
+| Unseen $U/t$ only | 144 | 2 | 0.508 | 0.694 |
+| Unseen architecture only | 144 | 6 | 0.534 | 0.744 |
+| Both unseen | 48 | 2 | 0.569 | 0.770 |
+
+Notebook 01 is the stronger uncertainty check because it repeats simultaneous transfer
+across five independently generated architecture pools and training seeds:
+
+| Architecture seed | Mean test $\tau_b$ | Minimum per-$U/t$ $\tau_b$ | Validation $\tau_b$ |
+|---:|---:|---:|---:|
+| 11 | 0.40 | 0.40 | 0.40 |
+| 23 | -0.10 | -0.20 | 0.40 |
+| 37 | 0.80 | 0.80 | 0.00 |
+| 51 | -0.20 | -0.20 | 0.80 |
+| 79 | 0.00 | 0.00 | 1.00 |
+
+Across seeds, mean Kendall correlation was 0.18, sample SD was 0.415, and the seed-level
+bootstrap 95 percent interval was $[-0.12,0.54]$. Because the interval includes zero
+and the five results range from -0.20 to 0.80, the current execution does not establish
+robust simultaneous-transfer performance. Notebook 02's 0.569 result is a useful
+single-split result, not a substitute for the repeated-seed estimate.
+
+### VQE convergence audit
+
+Notebook 03 re-optimized 75 leading circuits with 160 Adam steps and five restarts. All
+75 high-budget gaps were lower than their base-budget values. The median gap change was
+$-5.37\times10^{-4}$ Ha; the mean was $-8.72\times10^{-3}$ Ha and the largest absolute
+change was 0.214 Ha, showing a strongly skewed optimizer effect.
+
+| $U/t$ | Five-seed mean leading-set $\tau_b$ | Top-1 agreement |
+|---:|---:|---:|
+| 0 | -0.04 | 0.00 |
+| 4 | 0.32 | 0.80 |
+| 8 | 0.36 | 0.40 |
+| **Overall** | **0.213** | **0.40** |
+
+![Executed VQE convergence and finalist-ranking audit](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/03_vqe_convergence_check/__results___files/__results___8_0.png)
+
+The 60-step/two-restart labels are therefore adequate as exploratory labels but are not
+converged enough to support a strong finalist-ranking claim. The principal experiments
+should be repeated with higher-budget labels, or at minimum the reported conclusions
+should be conditioned on this low ranking stability.
+
+### Trainable-model ablation
+
+Notebook 04 used the same 432/24/48 train/validation/test split for every model. Neural
+rows report mean and sample SD over initialization seeds 101, 202, and 303.
+
+| Model | Parameters | Mean test $\tau_b$ | SD |
+|---|---:|---:|---:|
+| Joint factor GAT + KAN | 19,368 | 0.546 | 0.081 |
+| Circuit GAT | 9,985 | 0.535 | 0.052 |
+| Joint factor GAT | 9,985 | 0.533 | 0.000 |
+| Joint pairwise GAT | 9,985 | 0.519 | 0.049 |
+| Depth/count ridge | 5 | 0.363 | — |
+
+The factor graph exceeds the lossy pairwise mean by only 0.013 and does not exceed the
+circuit-only mean. KAN has the highest mean but also twice the parameter count and the
+largest SD. These results do not yet demonstrate a factor-graph or KAN advantage.
+
+The Hamiltonian-only negative control is intentionally omitted from the performance
+table. It has identical graph input for all circuits at fixed $H$, so its true
+within-Hamiltonian ranking is undefined. The stored nonzero values
+($-0.172,-0.103,0.082$) are inconsistent with that invariant and therefore indicate
+numerical/batching tie breaking or an implementation defect; they must not be
+interpreted as predictive performance.
+
+### Dense interaction sweep
+
+Architecture rankings are substantially more stable between adjacent interacting
+Hamiltonians than between $U/t=0$ and $1$:
+
+| Transition | Kendall $\tau_b$ |
+|---|---:|
+| 0 to 1 | 0.630 |
+| 1 to 2 | 0.871 |
+| 2 to 3 | 0.802 |
+| 3 to 4 | 0.833 |
+| 4 to 5 | 0.866 |
+| 5 to 6 | 0.856 |
+| 6 to 7 | 0.871 |
+| 7 to 8 | 0.875 |
+
+This supports an architecture-rank crossover near the noninteracting boundary, while
+rankings change more smoothly through the interacting regime.
 
 ## 1. Scientific objective
 
@@ -755,34 +891,41 @@ It is not a claim of agreement with experiment or the complete-basis-limit energ
 
 ## 16. Output files
 
-Publication-mode notebooks write to `/kaggle/working/qas_materials/`.
+Publication-mode notebooks write to `/kaggle/working/qas_materials/`. The table below
+distinguishes intended outputs from artifacts currently preserved in this repository.
 
-| Output | Produced by |
-|---|---|
-| `hubbard_dense_multiseed.csv` | 00 or any Hubbard notebook on cache miss |
-| `hubbard_dense_multiseed_manifest.json` | 00 |
-| `multiseed_tau_by_seed.csv` | 01 |
-| `multiseed_bootstrap_summary.csv` | 01 |
-| `unseen_architecture_parameter_results.csv` | 02 |
-| `vqe_high_precision_check.csv` | 03 |
-| `vqe_ranking_stability.csv` | 03 |
-| `gat_kan_ablation.csv` | 04 |
-| `dense_hubbard_gap_summary.csv` | 05 |
-| `dense_hubbard_rank_correlation.csv` | 05 |
-| `dense_hubbard_adjacent_tau.csv` | 05 |
-| `lih_bond_multiseed.csv` | 06 |
-| `lih_transfer_model_summary.csv` | 06 |
-| `lih_transfer_by_bond.csv` | 06 |
-| `lih_finalist_convergence_audit.csv` | 06 |
+| Output | Produced by | Repository status |
+|---|---:|---|
+| `hubbard_dense_multiseed.csv` | 00 or cache miss | [Stored](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/00_build_hubbard_multiseed_dataset/qas_materials/hubbard_dense_multiseed.csv) |
+| `hubbard_dense_multiseed_manifest.json` | 00 | [Stored](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/00_build_hubbard_multiseed_dataset/qas_materials/hubbard_dense_multiseed_manifest.json) |
+| `multiseed_tau_by_seed.csv` | 01 | Values preserved in executed notebook |
+| `multiseed_bootstrap_summary.csv` | 01 | Values preserved in executed notebook |
+| `unseen_architecture_parameter_results.csv` | 02 | [Stored as text](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/02-unseen-architecture-and-parameter-test/unseen_architecture_parameter_results.txt) |
+| `vqe_high_precision_check.csv` | 03 | [Stored](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/03_vqe_convergence_check/qas_materials/vqe_high_precision_check.csv) |
+| `vqe_ranking_stability.csv` | 03 | [Stored](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/03_vqe_convergence_check/qas_materials/vqe_ranking_stability.csv) |
+| `gat_kan_ablation.csv` | 04 | Values preserved in executed notebook |
+| `dense_hubbard_gap_summary.csv` | 05 | [Stored](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/05-dense-hubbard-sweep-analysis/qas_materials/dense_hubbard_gap_summary.csv) |
+| `dense_hubbard_rank_correlation.csv` | 05 | [Stored](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/05-dense-hubbard-sweep-analysis/qas_materials/dense_hubbard_rank_correlation.csv) |
+| `dense_hubbard_adjacent_tau.csv` | 05 | [Stored](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/05-dense-hubbard-sweep-analysis/qas_materials/dense_hubbard_adjacent_tau.csv) |
+| `lih_bond_multiseed.csv` | 06 | Pending; not used here |
+| `lih_transfer_model_summary.csv` | 06 | Pending; not used here |
+| `lih_transfer_by_bond.csv` | 06 | Pending; not used here |
+| `lih_finalist_convergence_audit.csv` | 06 | Pending; not used here |
 
 ## 17. Interpretation and limitations
 
-- The seven notebooks define experiments; publication results must come from executed
-  `FAST_MODE=False` outputs. This README does not fabricate unrun numbers.
-- Five architecture seeds support a first uncertainty estimate but not a highly stable
-  tail-probability statement.
-- Base VQE labels remain optimizer-dependent. Convergence notebooks test selected
-  circuits but do not prove global convergence for every label.
+- Results reported above come only from the stored `FAST_MODE=False` executions of
+  notebooks 00–05. Notebook 06 and all LiH outcomes remain pending.
+- The simultaneous-transfer mean is 0.18 with a bootstrap interval spanning zero;
+  five architecture seeds do not support a stable tail-probability statement.
+- The high-budget audit gives mean finalist-set $\tau_b=0.213$ and 40 percent top-1
+  agreement. Base VQE labels are optimizer-dependent and should not be treated as
+  converged ranking ground truth.
+- The factor, pairwise, and circuit-only GAT means differ by at most 0.016, while the
+  KAN head is not parameter matched. No representation superiority is established.
+- Hamiltonian-only scores should tie within each fixed Hamiltonian. Its stored nonzero
+  correlations are numerical tie-breaking artifacts, not a valid negative-control
+  performance estimate.
 - Factor-graph size grows with the number of Pauli words, which can scale rapidly with
   active-space size even though the representation itself preserves the terms.
 - LiH uses STO-3G and a small active space. Canonical orbitals are recomputed at each
