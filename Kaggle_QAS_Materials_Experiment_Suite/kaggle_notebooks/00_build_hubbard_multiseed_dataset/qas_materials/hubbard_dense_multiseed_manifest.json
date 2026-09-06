@@ -1,0 +1,30 @@
+{
+  "rows": 1080,
+  "architecture_seeds": [
+    11,
+    23,
+    37,
+    51,
+    79
+  ],
+  "u_values": [
+    0.0,
+    1.0,
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0,
+    7.0,
+    8.0
+  ],
+  "label_steps": [
+    60
+  ],
+  "label_restarts": [
+    2
+  ],
+  "dataset_version": [
+    "2026-09-v3-pauli-factor-graph"
+  ]
+}

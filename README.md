@@ -60,24 +60,24 @@ have distinct `_fast.csv` filenames. Dataset schema
 For a Hamiltonian $H_\lambda$ parameterized by an interaction, geometry, or material
 condition $\lambda$, a variational circuit architecture $a$ defines
 
-\[
+$$
 |\psi_a(\boldsymbol\theta)\rangle
 =U_a(\boldsymbol\theta)|\phi_0\rangle .
-\]
+$$
 
 The inner VQE problem is
 
-\[
+$$
 E_a^*(\lambda)
 =\min_{\boldsymbol\theta}
 \langle\psi_a(\boldsymbol\theta)|H_\lambda|\psi_a(\boldsymbol\theta)\rangle,
-\]
+$$
 
 and QAS seeks
 
-\[
+$$
 a^*(\lambda)=\arg\min_{a\in\mathcal A}E_a^*(\lambda).
-\]
+$$
 
 Because fully optimizing every $a\in\mathcal A$ is expensive, a learned surrogate
 $s_\phi(a,H_\lambda)$ ranks candidate circuits. Only a small finalist set is sent to
@@ -93,32 +93,32 @@ Hamiltonian improves ranking when either or both are unseen during training.
 With hopping $t>0$, onsite interaction $U\geq0$, site $i\in\{0,1\}$, and spin
 $\sigma\in\{\uparrow,\downarrow\}$,
 
-\[
+$$
 H_{\mathrm{Hub}}
 =-t\sum_{\sigma}
 \left(c_{0\sigma}^{\dagger}c_{1\sigma}
 +c_{1\sigma}^{\dagger}c_{0\sigma}\right)
 +U\sum_{i=0}^{1}n_{i\uparrow}n_{i\downarrow}.
-\]
+$$
 
 Spin orbitals are ordered
 
-\[
+$$
 (0\uparrow,1\uparrow,0\downarrow,1\downarrow).
-\]
+$$
 
 For adjacent orbitals under Jordan–Wigner,
 
-\[
+$$
 c_p^\dagger c_q+c_q^\dagger c_p
 \mapsto \frac{1}{2}(X_pX_q+Y_pY_q),
 \qquad
 n_p=\frac{I-Z_p}{2}.
-\]
+$$
 
 The implemented four-qubit Hamiltonian is consequently
 
-\[
+$$
 \begin{aligned}
 H_{\mathrm{Hub}}
 ={}&-\frac{t}{2}(X_0X_1+Y_0Y_1+X_2X_3+Y_2Y_3)\\
@@ -126,55 +126,55 @@ H_{\mathrm{Hub}}
 \sum_{(p,q)\in\{(0,2),(1,3)\}}
 (I-Z_p-Z_q+Z_pZ_q).
 \end{aligned}
-\]
+$$
 
 All calculations remain in the half-filled $N=2$ sector. For $t=1$, the exact
 two-site singlet ground energy is used as a unit test:
 
-\[
+$$
 E_0(U)=\frac{U-\sqrt{U^2+16}}{2}.
-\]
+$$
 
 The dense benchmark uses
 
-\[
+$$
 U/t\in\{0,1,2,3,4,5,6,7,8\}.
-\]
+$$
 
 ### 2.2 LiH electronic structure
 
 In second quantization, the molecular electronic Hamiltonian is
 
-\[
+$$
 H_{\mathrm{el}}(R)
 =\sum_{pq}h_{pq}(R)a_p^\dagger a_q
 +\frac12\sum_{pqrs}h_{pqrs}(R)
 a_p^\dagger a_q^\dagger a_r a_s
 +E_{\mathrm{nuc}}(R),
-\]
+$$
 
 where $R$ is the Li–H distance. The notebook uses STO-3G, freezes the Li core, and
 retains two active electrons in three spatial orbitals, giving six spin orbitals and six
 qubits. Jordan–Wigner produces
 
-\[
+$$
 H_{\mathrm{LiH}}(R)=\sum_{k=1}^{M(R)}c_k(R)P_k,
 \qquad
 P_k\in\{I,X,Y,Z\}^{\otimes6}.
-\]
+$$
 
 The geometry grid is
 
-\[
+$$
 R/\text{\AA}\in\{1.0,1.2,1.4,1.6,1.8,2.0,2.4,2.8,3.2\}.
-\]
+$$
 
 Exact diagonalization is restricted to the same two-electron active-space sector:
 
-\[
+$$
 E_0^{(N=2)}(R)
 =\lambda_{\min}\!\left(H_{\mathrm{LiH}}(R)\big|_{N=2}\right).
-\]
+$$
 
 This reference is used only for evaluation. It is not supplied to the surrogate.
 
@@ -183,20 +183,20 @@ This reference is used only for evaluation. It is not supplied to the surrogate.
 Every architecture is an ordered sequence of parameterized PennyLane
 `SingleExcitation` and `DoubleExcitation` gates:
 
-\[
+$$
 U_a(\boldsymbol\theta)
 =\prod_{\ell=1}^{L_a}
 G_{a,\ell}(\theta_\ell),
 \qquad
 G_{a,\ell}\in\{S_{pq},D_{pqrs}\}.
-\]
+$$
 
 Both operations preserve Hamming weight, so a two-electron reference remains in the
 $N=2$ sector. Circuit depths are sampled from
 
-\[
+$$
 L_a\in\{3,4,5,6,7,8\}.
-\]
+$$
 
 Every sampled circuit begins with an excitation that acts non-trivially on the
 reference. Architecture pools are independently seeded and then explicitly
@@ -211,23 +211,23 @@ optimizer-noise contribution to apparent Hamiltonian-transfer effects.
 
 For restart $r$, parameters begin at
 
-\[
+$$
 \theta_{\ell}^{(0,r)}\sim\mathcal N(0,0.08^2)
-\]
+$$
 
 and are optimized using Adam with learning rate $0.10$. The stored label is
 
-\[
+$$
 \widehat E_a(\lambda)
 =\min_{r\in\{1,\ldots,R_{\mathrm{VQE}}\}}
 E_a\!\left(\boldsymbol\theta_{a,r}^{(T)};\lambda\right).
-\]
+$$
 
 The reporting gap is
 
-\[
+$$
 \Delta E_a(\lambda)=\widehat E_a(\lambda)-E_0(\lambda)\geq0.
-\]
+$$
 
 The variational inequality is asserted numerically. Exact energies are used for this
 gap and for diagnostics only.
@@ -235,10 +235,10 @@ gap and for diagnostics only.
 Notebook 03 re-optimizes the five lowest-gap circuits for each architecture seed at
 $U/t\in\{0,4,8\}$ with $T=160$ and $R_{\mathrm{VQE}}=5$. It reports
 
-\[
+$$
 \tau_{\mathrm{conv}}
 =\tau_b(\Delta E^{\mathrm{base}},\Delta E^{\mathrm{high}})
-\]
+$$
 
 within each selected leading set, together with top-1 agreement. This is not claimed to
 measure convergence across the entire architecture distribution. Notebook 06 performs
@@ -248,13 +248,13 @@ an analogous high-precision audit for selected LiH finalists.
 
 For architecture $a$, the circuit graph
 
-\[
+$$
 \mathcal G_C(a)=(\mathcal V_C,\mathcal E_C)
-\]
+$$
 
 contains one node per excitation. Circuit-node features include
 
-\[
+$$
 x_\ell^{(C)}=
 \big[
 \mathrm{type}(G_\ell),
@@ -262,7 +262,7 @@ x_\ell^{(C)}=
 L_a/10,
 \mathrm{wiremask}(G_\ell)
 \big].
-\]
+$$
 
 Two operation nodes are connected when they are consecutive or act on at least one
 common spin orbital. Self-loops are included. Node position preserves ordered-circuit
@@ -275,20 +275,20 @@ information even though message-passing edges are bidirectional.
 A clique projection connects every pair of qubits appearing in one Pauli word. For
 example,
 
-\[
+$$
 c\,X_0Z_1Z_2X_3
-\]
+$$
 
 becomes six weighted qubit-pair edges. Those edges do not record that all four factors
 belong to one operator, and they may be indistinguishable from several separate
 two-qubit terms. The legacy pairwise ablation uses
 
-\[
+$$
 w_{ij}=\sum_{k:\,i,j\in\operatorname{supp}(P_k)}
 \frac{|c_k|}{S_H},
 \qquad
 S_H=\max\!\left(1,\sum_k|c_k|\right),
-\]
+$$
 
 which is useful as a baseline but is not reconstructible.
 
@@ -296,15 +296,15 @@ which is useful as a baseline but is not reconstructible.
 
 Duplicate Pauli strings are first aggregated:
 
-\[
+$$
 \widetilde c(P)=\sum_{k:P_k=P}c_k.
-\]
+$$
 
 The Hamiltonian factor graph is bipartite:
 
-\[
+$$
 \mathcal G_H=(\mathcal V_Q\cup\mathcal V_P\cup\{v_H\},\mathcal E_H),
-\]
+$$
 
 where
 
@@ -314,7 +314,7 @@ where
 
 For Pauli term $P_k$, its term-node features include
 
-\[
+$$
 x_k^{(P)}=
 \left[
 \frac{c_k}{S_H},
@@ -323,20 +323,20 @@ x_k^{(P)}=
 \frac{|\operatorname{supp}(P_k)|}{n},
 f_X,f_Y,f_Z
 \right],
-\]
+$$
 
 where $(f_X,f_Y,f_Z)$ are the fractions of non-identity factors of each axis. The global
 node stores
 
-\[
+$$
 x_H^{(G)}=
 \left[\log(1+S_H),\frac{c_I}{S_H}\right].
-\]
+$$
 
 A term node $v_{P_k}$ connects to qubit $v_{q_i}$ exactly when
 $P_k^{(i)}\neq I$. Its edge feature is
 
-\[
+$$
 e_{ki}=
 \left[
 \mathrm{relation}_{\mathrm{term-qubit}},
@@ -344,57 +344,57 @@ e_{ki}=
 \frac{c_k}{S_H},
 \frac{|c_k|}{S_H}
 \right].
-\]
+$$
 
 Thus each original coefficient and complete axis-labelled support can be reconstructed:
 
-\[
+$$
 \mathcal R(\mathcal G_H)=
 c_I I+
 \sum_{v_{P_k}\in\mathcal V_P}
 c_k\bigotimes_{i=0}^{n-1}P_k^{(i)}=H.
-\]
+$$
 
 Every Hubbard interaction and LiH geometry runs the assertion
 
-\[
+$$
 \max_P
 \left|\widetilde c_{\mathrm{input}}(P)
 -\widetilde c_{\mathrm{reconstructed}}(P)\right|<10^{-10}.
-\]
+$$
 
 The representation is lossless up to floating-point tolerance. Its cost scales with the
 number of Pauli words and their support:
 
-\[
+$$
 |\mathcal V_H|=n+M_{\ne I}+1,
 \qquad
 |\mathcal E_{\mathrm{term-qubit}}|
 =2\sum_{k}|\operatorname{supp}(P_k)|.
-\]
+$$
 
 ## 7. Joint circuit–Hamiltonian graph
 
 The joint graph combines circuit and factor graphs through the physical qubit nodes:
 
-\[
+$$
 \mathcal G_J(a,H)=
 \mathcal G_C(a)\cup\mathcal G_H(H)\cup\mathcal E_{C\leftrightarrow Q}.
-\]
+$$
 
 For operation $G_\ell$,
 
-\[
+$$
 (v_{G_\ell},v_{q_i})\in\mathcal E_{C\leftrightarrow Q}
 \iff i\in\operatorname{wires}(G_\ell).
-\]
+$$
 
 Edge relations distinguish self, circuit–circuit, Pauli-term–qubit, global, and
 circuit–qubit connections. Consequently, two message-passing layers permit the route
 
-\[
+$$
 \text{circuit operation}\rightarrow\text{qubit}\rightarrow\text{Pauli term},
-\]
+$$
 
 which directly couples an ansatz operation to Hamiltonian terms on the same orbitals.
 
@@ -403,47 +403,47 @@ which directly couples an ansatz operation to Hamiltonian terms on the same orbi
 For node state $h_i^{(\ell)}$, edge feature $e_{ij}$, and positive scalar edge
 weight $w_{ij}$, head $m$ computes
 
-\[
+$$
 z_i^{(m)}=W^{(m)}h_i,
 \qquad
 r_{ij}^{(m)}=W_e^{(m)}e_{ij}.
-\]
+$$
 
 The unnormalized attention logit is
 
-\[
+$$
 \beta_{ij}^{(m)}=
 \operatorname{LeakyReLU}\!\left(
 (a_s^{(m)})^\top z_i^{(m)}
 +(a_d^{(m)})^\top z_j^{(m)}
 +(a_e^{(m)})^\top r_{ij}^{(m)}
 \right)+\log(\max(w_{ij},10^{-8})).
-\]
+$$
 
 Incoming attention is normalized at destination $j$:
 
-\[
+$$
 \alpha_{ij}^{(m)}=
 \frac{\exp(\beta_{ij}^{(m)})}
 {\sum_{u\in\mathcal N(j)}\exp(\beta_{uj}^{(m)})}.
-\]
+$$
 
 The message update is
 
-\[
+$$
 h_j^{(\ell+1,m)}=
 \sum_{i\in\mathcal N(j)}
 \alpha_{ij}^{(m)}\left(z_i^{(m)}+r_{ij}^{(m)}\right).
-\]
+$$
 
 The implementation uses two GAT layers, three heads, hidden width 24, ELU
 nonlinearity, and mean-plus-max graph pooling:
 
-\[
+$$
 g=\operatorname{mean}_{i}(h_i)
 \;\Vert\;
 \operatorname{max}_{i}(h_i).
-\]
+$$
 
 It is implemented without PyTorch Geometric.
 
@@ -451,29 +451,29 @@ It is implemented without PyTorch Geometric.
 
 The MLP head is
 
-\[
+$$
 s_\phi(g)=W_2\,\operatorname{ELU}(W_1g+b_1)+b_2.
-\]
+$$
 
 The KAN head replaces fixed node-wise activations with learnable B-spline edge
 functions. For input $x\in\mathbb R^{d_{\mathrm{in}}}$, one KAN layer computes
 
-\[
+$$
 y_o=\sum_{i=1}^{d_{\mathrm{in}}}
 \left[
 w_{oi}^{(r)}\operatorname{SiLU}(x_i)
 +\sum_{b=1}^{B}w_{oib}^{(s)}B_b(x_i)
 \right],
-\]
+$$
 
 where $B_b$ are cubic B-spline basis functions on a fixed grid. The implemented head
 is
 
-\[
+$$
 g\xrightarrow{\mathrm{KAN}}24
 \xrightarrow{\mathrm{ELU}}
 \xrightarrow{\mathrm{KAN}}1.
-\]
+$$
 
 KAN has more parameters than the MLP head. The notebooks report parameter counts, so
 the comparison is a practical architecture ablation—not a parameter-matched causal
@@ -485,7 +485,7 @@ Training a surrogate on the exact gap would require unavailable exact ground ene
 for realistic systems. Instead, observable optimized VQE energies are standardized
 within each **training Hamiltonian**:
 
-\[
+$$
 y_{a,\lambda}=
 \frac{
 \widehat E_a(\lambda)-
@@ -493,43 +493,43 @@ y_{a,\lambda}=
 }{
 \sigma_{\lambda}^{\mathrm{train}}+10^{-8}
 },
-\]
+$$
 
 where
 
-\[
+$$
 \mu_{\lambda}^{\mathrm{train}}
 =\frac{1}{|\mathcal A_\lambda^{\mathrm{train}}|}
 \sum_{a\in\mathcal A_\lambda^{\mathrm{train}}}
 \widehat E_a(\lambda).
-\]
+$$
 
 Validation and test labels never enter this normalization.
 
 The regression term is
 
-\[
+$$
 \mathcal L_{\mathrm{MSE}}
 =\frac1B\sum_{a=1}^{B}(s_a-y_a)^2.
-\]
+$$
 
 Ranking pairs are constructed only between circuits evaluated on the same Hamiltonian.
 For such a pair $(a,b)$,
 
-\[
+$$
 \mathcal L_{\mathrm{rank}}^{(a,b)}
 =\max\left(
 0,
 m-\operatorname{sign}(y_a-y_b)(s_a-s_b)
 \right),
 \qquad m=0.10.
-\]
+$$
 
 The complete objective is
 
-\[
+$$
 \mathcal L=\mathcal L_{\mathrm{MSE}}+\mathcal L_{\mathrm{rank}}.
-\]
+$$
 
 Cross-Hamiltonian pairs are excluded because ranking an energy from one physical
 Hamiltonian against an energy from another is not the QAS objective.
@@ -538,23 +538,23 @@ Hamiltonian against an energy from another is not the QAS objective.
 
 For the global-pool Hubbard experiments in notebooks 02 and 04, the factorial split is
 
-\[
+$$
 \mathcal S_A^{\mathrm{train}}=\{11,23,37\},\quad
 \mathcal S_A^{\mathrm{val}}=\{51\},\quad
 \mathcal S_A^{\mathrm{test}}=\{79\},
-\]
+$$
 
 and
 
-\[
+$$
 \Lambda^{\mathrm{train}}=\{0,1,2,4,6,8\},\quad
 \Lambda^{\mathrm{val}}=\{3\},\quad
 \Lambda^{\mathrm{test}}=\{5,7\}.
-\]
+$$
 
 Notebook 02 evaluates:
 
-\[
+$$
 \begin{array}{ll}
 \text{parameter transfer:}
 &\mathcal S_A^{\mathrm{train}}\times\Lambda^{\mathrm{test}},\\
@@ -563,21 +563,21 @@ Notebook 02 evaluates:
 \text{simultaneous transfer:}
 &\mathcal S_A^{\mathrm{test}}\times\Lambda^{\mathrm{test}}.
 \end{array}
-\]
+$$
 
 The $U/t=5,7$ test is interpolation inside the training range, not extrapolation.
 
 For LiH,
 
-\[
+$$
 \Lambda_R^{\mathrm{train}}=\{1.0,1.4,1.8,2.4,3.2\}\,\text{\AA},
-\]
+$$
 
-\[
+$$
 \Lambda_R^{\mathrm{val}}=\{1.2\}\,\text{\AA},
 \qquad
 \Lambda_R^{\mathrm{test}}=\{1.6,2.0,2.8\}\,\text{\AA}.
-\]
+$$
 
 The same architecture-seed partition is used. Exact circuit fingerprints are asserted
 disjoint between architecture training, validation, and test sets.
@@ -587,29 +587,29 @@ disjoint between architecture training, validation, and test sets.
 For one Hamiltonian with $n$ evaluated circuits, Kendall's tie-corrected
 $\tau_b$ is
 
-\[
+$$
 \tau_b=
 \frac{C-D}
 {\sqrt{(C+D+T_y)(C+D+T_s)}},
-\]
+$$
 
 where $C,D$ are concordant and discordant pair counts and $T_y,T_s$ are target and
 score ties. Spearman correlation is
 
-\[
+$$
 \rho=\operatorname{corr}
 \left(\operatorname{rank}(\Delta E),
 \operatorname{rank}(s)\right).
-\]
+$$
 
 Metrics are always computed within each Hamiltonian and macro-averaged:
 
-\[
+$$
 \overline\tau
 =\frac{1}{|\Lambda_{\mathrm{test}}|}
 \sum_{\lambda\in\Lambda_{\mathrm{test}}}
 \tau_b^{(\lambda)}.
-\]
+$$
 
 Energy gaps from distinct Hamiltonians are never pooled into one ranking. For the
 Hamiltonian-only negative control, all circuits under a fixed $H_\lambda$ receive the
@@ -621,9 +621,9 @@ not zero.
 Notebook 01 produces one end-to-end mean test correlation $\overline\tau_s$ for each
 architecture/training seed
 
-\[
+$$
 s\in\{11,23,37,51,79\}.
-\]
+$$
 
 Within each 24-architecture seed pool, ordered architecture IDs are split into 14
 training, 5 validation, and 5 test circuits. The Hamiltonian split remains
@@ -632,26 +632,26 @@ and parameter transfer without mixing fingerprints across partitions.
 
 It reports
 
-\[
+$$
 \widehat\mu_\tau=\frac15\sum_{s=1}^{5}\overline\tau_s,
-\]
+$$
 
 and sample standard deviation
 
-\[
+$$
 \widehat\sigma_\tau=
 \sqrt{\frac{1}{4}
 \sum_{s=1}^{5}
 (\overline\tau_s-\widehat\mu_\tau)^2}.
-\]
+$$
 
 A percentile bootstrap samples the five seed-level results with replacement 10,000
 times. If $\mu^{*(b)}$ is bootstrap mean $b$, the reported interval is
 
-\[
+$$
 \mathrm{CI}_{95\%}=
 \left[Q_{0.025}(\mu^*),Q_{0.975}(\mu^*)\right].
-\]
+$$
 
 Resampling circuit rows would violate independence, so it is not used. With only five
 replicates this interval is necessarily coarse; individual seed values and sample SD
@@ -670,16 +670,16 @@ Notebook 04 compares, under identical splits and VQE-label budgets:
 
 The scalar baseline uses
 
-\[
+$$
 x_a^{(\mathrm{scalar})}
 =\left[L_a,n_{\theta,a},n_{S,a},n_{D,a}\right],
 \qquad
 s_a=\beta_0+\boldsymbol\beta^\top x_a^{(\mathrm{scalar})},
-\]
+$$
 
 with standardized features and ridge fitting
 
-\[
+$$
 \widehat{\boldsymbol\beta}
 =\arg\min_{\boldsymbol\beta}
 \sum_{a\in\mathcal A_{\mathrm{train}}}
@@ -687,7 +687,7 @@ with standardized features and ridge fitting
 +\alpha\|\boldsymbol\beta\|_2^2,
 \qquad
 \alpha\in\{10^{-4},\ldots,10^4\},
-\]
+$$
 
 where validation Kendall $\tau_b$ selects $\alpha$.
 
@@ -699,13 +699,13 @@ as capacity-confounded unless a later parameter-matched experiment is added.
 
 Because each architecture is paired across interaction values, notebook 05 computes
 
-\[
+$$
 T_{uv}=\tau_b
 \left(
 \{\Delta E_a(u)\}_{a\in\mathcal A},
 \{\Delta E_a(v)\}_{a\in\mathcal A}
 \right)
-\]
+$$
 
 for every pair $u,v\in\{0,\ldots,8\}$. Low $T_{uv}$ identifies an architecture-rank
 crossover between correlation regimes.
@@ -713,9 +713,9 @@ crossover between correlation regimes.
 For LiH, transfer correlations are reported independently at every held-out distance.
 A horizontal $1.6$ mHa line is used only as a numerical active-space VQE threshold:
 
-\[
+$$
 \Delta E_{\mathrm{active}}<1.6\times10^{-3}\ \mathrm{Ha}.
-\]
+$$
 
 It is not a claim of agreement with experiment or the complete-basis-limit energy.
 
