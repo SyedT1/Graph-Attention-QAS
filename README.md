@@ -68,7 +68,7 @@ $$
 The inner VQE problem is
 
 $$
-E_a^*(\lambda)
+E_a^{\star}(\lambda)
 =\min_{\boldsymbol\theta}
 \langle\psi_a(\boldsymbol\theta)|H_\lambda|\psi_a(\boldsymbol\theta)\rangle,
 $$
@@ -76,7 +76,7 @@ $$
 and QAS seeks
 
 $$
-a^*(\lambda)=\arg\min_{a\in\mathcal A}E_a^*(\lambda).
+a^{\star}(\lambda)=\arg\min_{a\in\mathcal A}E_a^{\star}(\lambda).
 $$
 
 Because fully optimizing every $a\in\mathcal A$ is expensive, a learned surrogate
@@ -112,7 +112,6 @@ For adjacent orbitals under Jordan–Wigner,
 $$
 c_p^\dagger c_q+c_q^\dagger c_p
 \mapsto \frac{1}{2}(X_pX_q+Y_pY_q),
-\qquad
 n_p=\frac{I-Z_p}{2}.
 $$
 
@@ -159,21 +158,20 @@ qubits. Jordan–Wigner produces
 
 $$
 H_{\mathrm{LiH}}(R)=\sum_{k=1}^{M(R)}c_k(R)P_k,
-\qquad
 P_k\in\{I,X,Y,Z\}^{\otimes6}.
 $$
 
 The geometry grid is
 
 $$
-R/\text{\AA}\in\{1.0,1.2,1.4,1.6,1.8,2.0,2.4,2.8,3.2\}.
+R(\mathrm{Angstrom})\in\{1.0,1.2,1.4,1.6,1.8,2.0,2.4,2.8,3.2\}.
 $$
 
 Exact diagonalization is restricted to the same two-electron active-space sector:
 
 $$
 E_0^{(N=2)}(R)
-=\lambda_{\min}\!\left(H_{\mathrm{LiH}}(R)\big|_{N=2}\right).
+=\lambda_{\min}\left(H_{\mathrm{LiH}}(R)\vert_{N=2}\right).
 $$
 
 This reference is used only for evaluation. It is not supplied to the surrogate.
@@ -187,7 +185,6 @@ $$
 U_a(\boldsymbol\theta)
 =\prod_{\ell=1}^{L_a}
 G_{a,\ell}(\theta_\ell),
-\qquad
 G_{a,\ell}\in\{S_{pq},D_{pqrs}\}.
 $$
 
@@ -220,7 +217,7 @@ and are optimized using Adam with learning rate $0.10$. The stored label is
 $$
 \widehat E_a(\lambda)
 =\min_{r\in\{1,\ldots,R_{\mathrm{VQE}}\}}
-E_a\!\left(\boldsymbol\theta_{a,r}^{(T)};\lambda\right).
+E_a\left(\boldsymbol\theta_{a,r}^{(T)};\lambda\right).
 $$
 
 The reporting gap is
@@ -256,12 +253,12 @@ contains one node per excitation. Circuit-node features include
 
 $$
 x_\ell^{(C)}=
-\big[
+\left[
 \mathrm{type}(G_\ell),
 \ell/(L_a-1),
 L_a/10,
 \mathrm{wiremask}(G_\ell)
-\big].
+\right].
 $$
 
 Two operation nodes are connected when they are consecutive or act on at least one
@@ -276,7 +273,7 @@ A clique projection connects every pair of qubits appearing in one Pauli word. F
 example,
 
 $$
-c\,X_0Z_1Z_2X_3
+cX_0Z_1Z_2X_3
 $$
 
 becomes six weighted qubit-pair edges. Those edges do not record that all four factors
@@ -284,10 +281,9 @@ belong to one operator, and they may be indistinguishable from several separate
 two-qubit terms. The legacy pairwise ablation uses
 
 $$
-w_{ij}=\sum_{k:\,i,j\in\operatorname{supp}(P_k)}
+w_{ij}=\sum_{k:i,j\in\mathrm{supp}(P_k)}
 \frac{|c_k|}{S_H},
-\qquad
-S_H=\max\!\left(1,\sum_k|c_k|\right),
+S_H=\max\left(1,\sum_k|c_k|\right),
 $$
 
 which is useful as a baseline but is not reconstructible.
@@ -320,7 +316,7 @@ x_k^{(P)}=
 \frac{c_k}{S_H},
 \frac{|c_k|}{S_H},
 \frac{\log(1+|c_k|)}{\log(1+S_H)},
-\frac{|\operatorname{supp}(P_k)|}{n},
+\frac{|\mathrm{supp}(P_k)|}{n},
 f_X,f_Y,f_Z
 \right],
 $$
@@ -368,9 +364,8 @@ number of Pauli words and their support:
 
 $$
 |\mathcal V_H|=n+M_{\ne I}+1,
-\qquad
 |\mathcal E_{\mathrm{term-qubit}}|
-=2\sum_{k}|\operatorname{supp}(P_k)|.
+=2\sum_{k}|\mathrm{supp}(P_k)|.
 $$
 
 ## 7. Joint circuit–Hamiltonian graph
@@ -386,7 +381,7 @@ For operation $G_\ell$,
 
 $$
 (v_{G_\ell},v_{q_i})\in\mathcal E_{C\leftrightarrow Q}
-\iff i\in\operatorname{wires}(G_\ell).
+\iff i\in\mathrm{wires}(G_\ell).
 $$
 
 Edge relations distinguish self, circuit–circuit, Pauli-term–qubit, global, and
@@ -405,7 +400,6 @@ weight $w_{ij}$, head $m$ computes
 
 $$
 z_i^{(m)}=W^{(m)}h_i,
-\qquad
 r_{ij}^{(m)}=W_e^{(m)}e_{ij}.
 $$
 
@@ -413,7 +407,7 @@ The unnormalized attention logit is
 
 $$
 \beta_{ij}^{(m)}=
-\operatorname{LeakyReLU}\!\left(
+\mathrm{LeakyReLU}\left(
 (a_s^{(m)})^\top z_i^{(m)}
 +(a_d^{(m)})^\top z_j^{(m)}
 +(a_e^{(m)})^\top r_{ij}^{(m)}
@@ -440,9 +434,9 @@ The implementation uses two GAT layers, three heads, hidden width 24, ELU
 nonlinearity, and mean-plus-max graph pooling:
 
 $$
-g=\operatorname{mean}_{i}(h_i)
-\;\Vert\;
-\operatorname{max}_{i}(h_i).
+g=\mathrm{mean}_{i}(h_i)
+\Vert
+\max_{i}(h_i).
 $$
 
 It is implemented without PyTorch Geometric.
@@ -452,7 +446,7 @@ It is implemented without PyTorch Geometric.
 The MLP head is
 
 $$
-s_\phi(g)=W_2\,\operatorname{ELU}(W_1g+b_1)+b_2.
+s_\phi(g)=W_2\mathrm{ELU}(W_1g+b_1)+b_2.
 $$
 
 The KAN head replaces fixed node-wise activations with learnable B-spline edge
@@ -461,7 +455,7 @@ functions. For input $x\in\mathbb R^{d_{\mathrm{in}}}$, one KAN layer computes
 $$
 y_o=\sum_{i=1}^{d_{\mathrm{in}}}
 \left[
-w_{oi}^{(r)}\operatorname{SiLU}(x_i)
+w_{oi}^{(r)}\mathrm{SiLU}(x_i)
 +\sum_{b=1}^{B}w_{oib}^{(s)}B_b(x_i)
 \right],
 $$
@@ -520,9 +514,9 @@ $$
 \mathcal L_{\mathrm{rank}}^{(a,b)}
 =\max\left(
 0,
-m-\operatorname{sign}(y_a-y_b)(s_a-s_b)
+m-\mathrm{sign}(y_a-y_b)(s_a-s_b)
 \right),
-\qquad m=0.10.
+m=0.10.
 $$
 
 The complete objective is
@@ -539,16 +533,16 @@ Hamiltonian against an energy from another is not the QAS objective.
 For the global-pool Hubbard experiments in notebooks 02 and 04, the factorial split is
 
 $$
-\mathcal S_A^{\mathrm{train}}=\{11,23,37\},\quad
-\mathcal S_A^{\mathrm{val}}=\{51\},\quad
+\mathcal S_A^{\mathrm{train}}=\{11,23,37\},
+\mathcal S_A^{\mathrm{val}}=\{51\},
 \mathcal S_A^{\mathrm{test}}=\{79\},
 $$
 
 and
 
 $$
-\Lambda^{\mathrm{train}}=\{0,1,2,4,6,8\},\quad
-\Lambda^{\mathrm{val}}=\{3\},\quad
+\Lambda^{\mathrm{train}}=\{0,1,2,4,6,8\},
+\Lambda^{\mathrm{val}}=\{3\},
 \Lambda^{\mathrm{test}}=\{5,7\}.
 $$
 
@@ -567,16 +561,15 @@ $$
 
 The $U/t=5,7$ test is interpolation inside the training range, not extrapolation.
 
-For LiH,
+For LiH, with every distance measured in angstroms,
 
 $$
-\Lambda_R^{\mathrm{train}}=\{1.0,1.4,1.8,2.4,3.2\}\,\text{\AA},
+\Lambda_R^{\mathrm{train}}=\{1.0,1.4,1.8,2.4,3.2\},
 $$
 
 $$
-\Lambda_R^{\mathrm{val}}=\{1.2\}\,\text{\AA},
-\qquad
-\Lambda_R^{\mathrm{test}}=\{1.6,2.0,2.8\}\,\text{\AA}.
+\Lambda_R^{\mathrm{val}}=\{1.2\},
+\Lambda_R^{\mathrm{test}}=\{1.6,2.0,2.8\}.
 $$
 
 The same architecture-seed partition is used. Exact circuit fingerprints are asserted
@@ -597,9 +590,9 @@ where $C,D$ are concordant and discordant pair counts and $T_y,T_s$ are target a
 score ties. Spearman correlation is
 
 $$
-\rho=\operatorname{corr}
-\left(\operatorname{rank}(\Delta E),
-\operatorname{rank}(s)\right).
+\rho=\mathrm{corr}
+\left(\mathrm{rank}(\Delta E),
+\mathrm{rank}(s)\right).
 $$
 
 Metrics are always computed within each Hamiltonian and macro-averaged:
@@ -646,11 +639,11 @@ $$
 $$
 
 A percentile bootstrap samples the five seed-level results with replacement 10,000
-times. If $\mu^{*(b)}$ is bootstrap mean $b$, the reported interval is
+times. If $\mu^{\star(b)}$ is bootstrap mean $b$, the reported interval is
 
 $$
 \mathrm{CI}_{95\%}=
-\left[Q_{0.025}(\mu^*),Q_{0.975}(\mu^*)\right].
+\left[Q_{0.025}(\mu^{\star}),Q_{0.975}(\mu^{\star})\right].
 $$
 
 Resampling circuit rows would violate independence, so it is not used. With only five
@@ -673,7 +666,6 @@ The scalar baseline uses
 $$
 x_a^{(\mathrm{scalar})}
 =\left[L_a,n_{\theta,a},n_{S,a},n_{D,a}\right],
-\qquad
 s_a=\beta_0+\boldsymbol\beta^\top x_a^{(\mathrm{scalar})},
 $$
 
@@ -685,7 +677,6 @@ $$
 \sum_{a\in\mathcal A_{\mathrm{train}}}
 \left(y_a-s_a\right)^2
 +\alpha\|\boldsymbol\beta\|_2^2,
-\qquad
 \alpha\in\{10^{-4},\ldots,10^4\},
 $$
 
@@ -714,7 +705,7 @@ For LiH, transfer correlations are reported independently at every held-out dist
 A horizontal $1.6$ mHa line is used only as a numerical active-space VQE threshold:
 
 $$
-\Delta E_{\mathrm{active}}<1.6\times10^{-3}\ \mathrm{Ha}.
+\Delta E_{\mathrm{active}}<1.6\times10^{-3}\mathrm{Ha}.
 $$
 
 It is not a claim of agreement with experiment or the complete-basis-limit energy.
