@@ -57,11 +57,11 @@ Label generation checkpoints after every interaction or bond length. Quick-mode 
 have distinct `_fast.csv` filenames. Dataset schema
 `2026-09-v3-pauli-factor-graph` rejects incompatible older caches.
 
-## Executed results: notebooks 00–05
+## Executed results: notebooks 00–06
 
 These values were read from the stored, full-mode Kaggle executions—not copied from
-the notebook templates. Notebooks 00–05 completed every code cell without a stored
-exception. Notebook 06 is still running and **no LiH result is included below**.
+the notebook templates. Notebooks 00–06 completed every code cell without a stored
+exception.
 
 | Notebook | Execution status | Stored evidence |
 |---:|---|---|
@@ -71,7 +71,7 @@ exception. Notebook 06 is still running and **no LiH result is included below**.
 | 03 | Complete | [executed notebook](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/03_vqe_convergence_check/03-vqe-convergence-check.ipynb), [high-precision labels](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/03_vqe_convergence_check/qas_materials/vqe_high_precision_check.csv), [stability table](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/03_vqe_convergence_check/qas_materials/vqe_ranking_stability.csv) |
 | 04 | Complete | [executed notebook](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/04-trainable-gat-kan-ablation/04-trainable-gat-kan-ablation.ipynb) |
 | 05 | Complete | [executed notebook](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/05-dense-hubbard-sweep-analysis/05-dense-hubbard-sweep-analysis.ipynb), [gap summary](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/05-dense-hubbard-sweep-analysis/qas_materials/dense_hubbard_gap_summary.csv), [rank matrix](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/05-dense-hubbard-sweep-analysis/qas_materials/dense_hubbard_rank_correlation.csv) |
-| 06 | Pending | Excluded from this results summary |
+| 06 | Complete | [executed notebook](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/06-lih-bond-length-transfer/06-lih-bond-length-transfer.ipynb), [dataset](<Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/06-lih-bond-length-transfer/results (1)/qas_materials/lih_bond_multiseed.csv>), [model summary](<Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/06-lih-bond-length-transfer/results (1)/qas_materials/lih_transfer_model_summary.csv>), [per-bond results](<Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/06-lih-bond-length-transfer/results (1)/qas_materials/lih_transfer_by_bond.csv>), [convergence audit](<Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/06-lih-bond-length-transfer/results (1)/qas_materials/lih_finalist_convergence_audit.csv>) |
 
 The executed environment reported PennyLane 0.43.3, PyTorch 2.10.0+cu128, and a CUDA
 device. The PennyLane warning about JAX 0.7.2 does not affect these runs because the VQE
@@ -190,6 +190,88 @@ Hamiltonians than between $U/t=0$ and $1$:
 
 This supports an architecture-rank crossover near the noninteracting boundary, while
 rankings change more smoothly through the interacting regime.
+
+### LiH bond-length transfer
+
+Notebook 06 completed the full six-qubit LiH experiment. It generated 810 labels from
+18 circuits per architecture seed, five seeds, and nine bond lengths. Every label used
+70 Adam steps and two restarts. The largest Pauli-factor-graph round-trip coefficient
+error across the nine molecular Hamiltonians was $1.78\times10^{-15}$, below the
+asserted $10^{-10}$ tolerance.
+
+The simultaneous architecture-and-geometry split was:
+
+| Split | Architecture seeds | Li–H distances (Å) | Rows used |
+|---|---|---|---:|
+| Train | 11, 23, 37 | 1.0, 1.4, 1.8, 2.4, 3.2 | 270 |
+| Validation | 51 | 1.2 | 18 |
+| Test | 79 | 1.6, 2.0, 2.8 | 54 |
+
+The remaining rows in the complete 810-row label table are not part of these three
+Cartesian subsets. Exact circuit fingerprints are disjoint across the architecture
+split. All test correlations below are calculated within a bond length and then
+macro-averaged over the three held-out geometries.
+
+| Model | Validation Kendall $\tau_b$ | Epochs | Test Kendall $\tau_b$ | Test Spearman $\rho$ |
+|---|---:|---:|---:|---:|
+| Circuit GAT | 0.503 | 43 | **0.259** | **0.366** |
+| Joint pairwise GAT | **0.569** | 134 | 0.203 | 0.306 |
+| Joint factor GAT | 0.503 | 68 | 0.137 | 0.227 |
+| Joint factor GAT + KAN | 0.556 | 54 | 0.233 | 0.362 |
+
+Circuit GAT gives the highest macro test correlation in this stored run. The KAN head
+improves the joint factor model and nearly matches the circuit-only Spearman result,
+but neither Hamiltonian representation beats circuit GAT. Consequently, this LiH run
+does not establish a Hamiltonian-encoding advantage.
+
+The geometry-resolved results rank the same 18 unseen seed-79 circuits at every test
+distance:
+
+| Model | $R=1.6$ Å | $R=2.0$ Å | $R=2.8$ Å |
+|---|---:|---:|---:|
+| Circuit GAT | **0.190** | **0.229** | **0.359** |
+| Joint pairwise GAT | 0.150 | 0.190 | 0.268 |
+| Joint factor GAT | 0.085 | 0.098 | 0.229 |
+| Joint factor GAT + KAN | 0.163 | 0.203 | 0.333 |
+
+The label distribution also becomes substantially harder in the stretched regime:
+
+| Li–H distance (Å) | Best gap (Ha) | Median gap (Ha) |
+|---:|---:|---:|
+| 1.0 | $8.276\times10^{-6}$ | $1.130\times10^{-3}$ |
+| 1.2 | $1.003\times10^{-5}$ | $9.756\times10^{-4}$ |
+| 1.4 | $1.085\times10^{-5}$ | $8.770\times10^{-4}$ |
+| 1.6 | $1.682\times10^{-5}$ | $8.060\times10^{-4}$ |
+| 1.8 | $2.719\times10^{-5}$ | $7.616\times10^{-4}$ |
+| 2.0 | $4.932\times10^{-5}$ | $7.559\times10^{-4}$ |
+| 2.4 | $2.095\times10^{-4}$ | $1.866\times10^{-3}$ |
+| 2.8 | $1.126\times10^{-3}$ | $7.552\times10^{-3}$ |
+| 3.2 | $1.236\times10^{-3}$ | $1.156\times10^{-2}$ |
+
+The median circuit first exceeds the plotted 1.6 mHa active-space threshold at
+$R=2.4$ Å, whereas the best circuit remains below it at every sampled geometry.
+
+![Executed LiH bond-stretch difficulty and unseen-geometry rankings](<Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/06-lih-bond-length-transfer/results (1)/__results___files/__results___9_0.png>)
+
+The molecular convergence audit reran the three lowest-gap seed-79 circuits at each
+test geometry with 160 steps and five restarts:
+
+| Bond (Å) | Architecture | Base gap (Ha) | High-precision gap (Ha) |
+|---:|---:|---:|---:|
+| 1.6 | 79 / 12 | $3.329\times10^{-5}$ | $3.302\times10^{-5}$ |
+| 1.6 | 79 / 5 | $2.279\times10^{-4}$ | $2.274\times10^{-4}$ |
+| 1.6 | 79 / 4 | $2.281\times10^{-4}$ | $2.274\times10^{-4}$ |
+| 2.0 | 79 / 12 | $1.014\times10^{-4}$ | $1.010\times10^{-4}$ |
+| 2.0 | 79 / 5 | $5.792\times10^{-4}$ | $5.787\times10^{-4}$ |
+| 2.0 | 79 / 4 | $5.794\times10^{-4}$ | $5.787\times10^{-4}$ |
+| 2.8 | 79 / 9 | $1.747\times10^{-3}$ | $1.745\times10^{-3}$ |
+| 2.8 | 79 / 12 | $2.764\times10^{-3}$ | $2.761\times10^{-3}$ |
+| 2.8 | 79 / 6 | $3.256\times10^{-3}$ | $3.256\times10^{-3}$ |
+
+All nine high-precision gaps are lower than their base values. The largest absolute
+change is $3.13\times10^{-6}$ Ha, so the selected molecular finalists are stable under
+the larger optimization budget. This is markedly better convergence behavior than the
+stored Hubbard finalist audit, although it covers only the selected LiH circuits.
 
 ## 1. Scientific objective
 
@@ -907,15 +989,15 @@ distinguishes intended outputs from artifacts currently preserved in this reposi
 | `dense_hubbard_gap_summary.csv` | 05 | [Stored](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/05-dense-hubbard-sweep-analysis/qas_materials/dense_hubbard_gap_summary.csv) |
 | `dense_hubbard_rank_correlation.csv` | 05 | [Stored](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/05-dense-hubbard-sweep-analysis/qas_materials/dense_hubbard_rank_correlation.csv) |
 | `dense_hubbard_adjacent_tau.csv` | 05 | [Stored](Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/05-dense-hubbard-sweep-analysis/qas_materials/dense_hubbard_adjacent_tau.csv) |
-| `lih_bond_multiseed.csv` | 06 | Pending; not used here |
-| `lih_transfer_model_summary.csv` | 06 | Pending; not used here |
-| `lih_transfer_by_bond.csv` | 06 | Pending; not used here |
-| `lih_finalist_convergence_audit.csv` | 06 | Pending; not used here |
+| `lih_bond_multiseed.csv` | 06 | [Stored](<Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/06-lih-bond-length-transfer/results (1)/qas_materials/lih_bond_multiseed.csv>) |
+| `lih_transfer_model_summary.csv` | 06 | [Stored](<Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/06-lih-bond-length-transfer/results (1)/qas_materials/lih_transfer_model_summary.csv>) |
+| `lih_transfer_by_bond.csv` | 06 | [Stored](<Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/06-lih-bond-length-transfer/results (1)/qas_materials/lih_transfer_by_bond.csv>) |
+| `lih_finalist_convergence_audit.csv` | 06 | [Stored](<Kaggle_QAS_Materials_Experiment_Suite/kaggle_notebooks/06-lih-bond-length-transfer/results (1)/qas_materials/lih_finalist_convergence_audit.csv>) |
 
 ## 17. Interpretation and limitations
 
-- Results reported above come only from the stored `FAST_MODE=False` executions of
-  notebooks 00–05. Notebook 06 and all LiH outcomes remain pending.
+- Results reported above come from the stored `FAST_MODE=False` executions of all
+  notebooks 00–06.
 - The simultaneous-transfer mean is 0.18 with a bootstrap interval spanning zero;
   five architecture seeds do not support a stable tail-probability statement.
 - The high-budget audit gives mean finalist-set $\tau_b=0.213$ and 40 percent top-1
@@ -930,6 +1012,9 @@ distinguishes intended outputs from artifacts currently preserved in this reposi
   active-space size even though the representation itself preserves the terms.
 - LiH uses STO-3G and a small active space. Canonical orbitals are recomputed at each
   geometry and are not explicitly matched by orbital overlap.
+- The LiH neural comparison stores one training initialization and one held-out
+  architecture pool. It is not a model-seed uncertainty analysis, and its 18-circuit,
+  one-geometry validation set makes model selection uncertain.
 - All calculations are noiseless state-vector simulations with exact expectation values.
 - The four- and six-qubit demonstrations do not establish favorable asymptotic scaling.
 - The test interactions $U/t=5,7$ measure interpolation rather than out-of-range
