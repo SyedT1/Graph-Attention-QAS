@@ -1,0 +1,160 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=20mm]{geometry}
+\usepackage{fontspec}
+% Compile with the supplied Microsoft Core Fonts directory; the PDF embeds the fonts.
+\setmainfont[
+  Path=/tmp/times-fonts/,
+  UprightFont=Times.TTF,
+  BoldFont=Timesbd.TTF,
+  ItalicFont=Timesi.TTF,
+  BoldItalicFont=Timesbi.TTF
+]{Times New Roman}
+\usepackage{microtype}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{navy}{HTML}{12304A}
+\definecolor{teal}{HTML}{008C8C}
+\definecolor{aqua}{HTML}{4FC3B3}
+\definecolor{gold}{HTML}{E7A93B}
+\definecolor{coral}{HTML}{D95F59}
+\definecolor{paleblue}{HTML}{EAF1F8}
+\definecolor{ink}{HTML}{17242F}
+
+\color{ink}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3pt}
+\setlength{\emergencystretch}{1em}
+\newcommand{\tightheading}[1]{\vspace{1pt}{\bfseries\color{navy}#1}\par\vspace{-2pt}}
+
+\begin{document}
+
+\begin{center}
+{\fontsize{16}{18}\selectfont\bfseries\color{navy}
+Graph-Surrogate Quantum Architecture Search for\\
+Electronic-Structure and Correlated-Materials Hamiltonians\par}
+\vspace{3pt}
+{\bfseries Syed Mohaiminul Hoque}\\
+Center for Computational and Data Sciences, Independent University Bangladesh\\
+\href{mailto:syedmuhaimintahsin@gmail.com}{syedmuhaimintahsin@gmail.com}
+\end{center}
+\vspace{-2pt}
+
+\tightheading{Abstract}
+Variational quantum eigensolvers can approximate ground states relevant to molecular
+and correlated-material modelling, but their accuracy depends strongly on the selected
+circuit ansatz. We present a small graph-surrogate benchmark for ranking
+particle-number-preserving variational circuits before expensive optimization. The
+study includes a four-qubit, two-site spinful Fermi--Hubbard model at six interaction
+ratios \(U/t\), together with six-qubit active-space LiH and BeH\(_2\) Hamiltonians
+constructed in STO--3G and mapped by Jordan--Wigner. Twelve single- and
+double-excitation architectures were evaluated for each Hamiltonian, producing 96 VQE
+runs with two deterministic restarts.
+
+Circuit graphs encode excitation type, position, and active spin orbitals, while
+Hamiltonian graphs summarize signed Pauli content and interaction-weighted qubit
+connectivity. A message-passing representation and validation-selected ridge surrogate
+were trained at \(U/t=\{0.5,2,6\}\), tuned only at \(U/t=1\), and tested at the unseen
+values \(U/t=\{3,4\}\). The resulting rankings achieved Kendall correlations of 0.606
+and 0.667. When only three finalists were fully evaluated, surrogate selection reduced
+the mean energy gap relative to random selection by 80\% and 78\%, respectively.
+The best LiH and BeH\(_2\) circuits reached gaps of \(7.1\times10^{-5}\) and
+\(4.9\times10^{-5}\) hartree. Adding the current Hamiltonian descriptor did not improve
+within-family ranking, and zero-shot molecular transfer remained weaker
+(\(\bar{\tau}=0.288\)). These results identify graph ranking as promising for
+interaction-parameter transfer while motivating learned Hamiltonian encoders for
+transferable materials simulation.
+
+\vspace{2pt}
+\begin{center}
+\begin{tikzpicture}[
+  font=\fontsize{8}{9}\selectfont,
+  box/.style={rounded corners=1.3mm,draw=navy!70,fill=paleblue,
+              minimum height=10mm,text width=27mm,align=center,inner sep=1mm},
+  arr/.style={-{Stealth[length=1.8mm]},draw=teal,line width=.9pt}
+]
+\node[box,fill=gold!15] (h) {\textbf{Hamiltonians}\\Hubbard; LiH; BeH$_2$};
+\node[box,right=4mm of h] (c) {\textbf{12 ansätze}\\particle-conserving excitations};
+\node[box,right=4mm of c] (g) {\textbf{Graph encoding}\\circuit + Hamiltonian};
+\node[box,right=4mm of g] (s) {\textbf{Leakage-free surrogate}\\train $\rightarrow$ val $\rightarrow$ test};
+\node[box,right=4mm of s,fill=aqua!15] (v) {\textbf{Budgeted VQE}\\top three finalists};
+\draw[arr] (h)--(c); \draw[arr] (c)--(g); \draw[arr] (g)--(s); \draw[arr] (s)--(v);
+
+\node[anchor=north west] at ([yshift=-6mm]h.south west) {
+\begin{tikzpicture}
+\begin{axis}[
+ width=48mm,height=35mm,ybar,bar width=6pt,
+ ymin=0,ymax=.8,ylabel={Kendall $\tau$},
+ symbolic x coords={U3,U4,Mol.},xtick=data,
+ ytick={0,.2,.4,.6,.8},grid=major,grid style={gray!15},
+ tick label style={font=\fontsize{7}{8}\selectfont},
+ label style={font=\fontsize{8}{9}\selectfont},
+ title={\textbf{Held-out ranking}},title style={font=\fontsize{9}{10}\selectfont},
+ nodes near coords,nodes near coords style={font=\fontsize{7}{8}\selectfont}]
+\addplot[fill=teal!70,draw=teal] coordinates {(U3,.606) (U4,.667) (Mol.,.288)};
+\end{axis}
+\end{tikzpicture}};
+
+\node[anchor=north] at ([yshift=-6mm]g.south) {
+\begin{tikzpicture}
+\begin{axis}[
+ width=55mm,height=35mm,ybar,bar width=7pt,
+ ymin=0,ymax=.06,ylabel={VQE energy gap},
+ symbolic x coords={U3,U4},xtick=data,
+ ytick={0,.02,.04,.06},grid=major,grid style={gray!15},
+ tick label style={font=\fontsize{7}{8}\selectfont},
+ label style={font=\fontsize{8}{9}\selectfont},
+ title={\textbf{Three-finalist search}},title style={font=\fontsize{9}{10}\selectfont},
+ legend style={at={(.5,1.02)},anchor=south,legend columns=2,
+               font=\fontsize{6.8}{8}\selectfont,draw=none}]
+\addplot[fill=navy!45,draw=navy] coordinates {(U3,.0491) (U4,.0461)};
+\addplot[fill=aqua,draw=teal] coordinates {(U3,.0098) (U4,.0101)};
+\legend{Random,Surrogate}
+\end{axis}
+\end{tikzpicture}};
+
+\node[anchor=north east] at ([yshift=-6mm]v.south east) {
+\begin{tikzpicture}
+\begin{semilogyaxis}[
+ width=48mm,height=35mm,ybar,bar width=8pt,
+ ymin=2e-5,ymax=3e-3,ylabel={Gap (hartree)},
+ symbolic x coords={LiH,BeH2},xtick=data,
+ ytick={1e-4,1e-3},grid=major,grid style={gray!15},
+ tick label style={font=\fontsize{7}{8}\selectfont},
+ label style={font=\fontsize{8}{9}\selectfont},
+ title={\textbf{Molecular accuracy}},title style={font=\fontsize{9}{10}\selectfont}]
+\addplot[fill=gold!75,draw=gold!60!black] coordinates {(LiH,0.000071) (BeH2,0.000049)};
+\addplot[coral,dashed,line width=1pt,sharp plot] coordinates {(LiH,.0016) (BeH2,.0016)};
+\end{semilogyaxis}
+\end{tikzpicture}};
+\end{tikzpicture}
+
+\vspace{1mm}
+{\textbf{Figure 1.}
+Hamiltonian-aware QAS workflow and held-out results. The red dashed line marks
+chemical accuracy (\(\approx1.6\times10^{-3}\) hartree).}
+\end{center}
+
+\vspace{-1pt}
+\textbf{Keywords:} quantum architecture search; variational quantum eigensolver;
+electronic structure; Fermi--Hubbard model; graph surrogate
+
+\vspace{2pt}
+{
+\textbf{References.}
+[1] Z. He et al., \emph{Self-supervised representation learning for Bayesian quantum
+architecture search}, Phys. Rev. A, vol. 111, 032403, 2025.
+[2] S. Li et al., \emph{Quantum architecture search with neural predictor based on
+ZX-calculus}, EPJ Quantum Technol., vol. 12, 106, 2025.
+[3] J. Chen et al., \emph{Automated unitary coupled cluster circuit design via
+differentiable quantum architecture search}, arXiv:2605.28049, 2026.
+\textbf{Code:} \href{https://github.com/SyedT1/Graph-Attention-QAS}
+{github.com/SyedT1/Graph-Attention-QAS}.}
+
+\end{document}
