@@ -183,8 +183,7 @@ Every architecture is an ordered sequence of parameterized PennyLane
 
 $$
 U_a(\boldsymbol\theta)
-=\prod_{\ell=1}^{L_a}
-G_{a,\ell}(\theta_\ell),
+=G_{a,L_a}(\theta_{L_a})\cdots G_{a,2}(\theta_2)G_{a,1}(\theta_1),
 G_{a,\ell}\in\{S_{pq},D_{pqrs}\}.
 $$
 
@@ -322,12 +321,15 @@ f_X,f_Y,f_Z
 $$
 
 where $(f_X,f_Y,f_Z)$ are the fractions of non-identity factors of each axis. The global
-node stores
+node stores the following physics-specific entries:
 
 $$
 x_H^{(G)}=
 \left[\log(1+S_H),\frac{c_I}{S_H}\right].
 $$
+
+The full node vector also contains its node-type indicator and zero padding to the
+shared 24-dimensional feature width.
 
 A term node $v_{P_k}$ connects to qubit $v_{q_i}$ exactly when
 $P_k^{(i)}\neq I$. Its edge feature is
@@ -430,6 +432,9 @@ h_j^{(\ell+1,m)}=
 \alpha_{ij}^{(m)}\left(z_i^{(m)}+r_{ij}^{(m)}\right).
 $$
 
+During training, dropout with probability 0.10 is applied to $\alpha_{ij}^{(m)}$
+before aggregation. Evaluation uses the normalized attention weights directly.
+
 The implementation uses two GAT layers, three heads, hidden width 24, ELU
 nonlinearity, and mean-plus-max graph pooling:
 
@@ -498,6 +503,17 @@ $$
 \widehat E_a(\lambda).
 $$
 
+The code uses the population standard deviation within that same training group:
+
+$$
+\sigma_{\lambda}^{\mathrm{train}}
+=\sqrt{
+\frac{1}{|\mathcal A_\lambda^{\mathrm{train}}|}
+\sum_{a\in\mathcal A_\lambda^{\mathrm{train}}}
+\left(\widehat E_a(\lambda)-\mu_{\lambda}^{\mathrm{train}}\right)^2
+}.
+$$
+
 Validation and test labels never enter this normalization.
 
 The regression term is
@@ -518,6 +534,18 @@ m-\mathrm{sign}(y_a-y_b)(s_a-s_b)
 \right),
 m=0.10.
 $$
+
+If $\mathcal P_B$ is the set of unequal-target, same-Hamiltonian pairs retained in a
+minibatch, the implemented ranking term is
+
+$$
+\mathcal L_{\mathrm{rank}}
+=\frac{1}{|\mathcal P_B|}
+\sum_{(a,b)\in\mathcal P_B}\mathcal L_{\mathrm{rank}}^{(a,b)}.
+$$
+
+At most 256 such pairs are sampled per minibatch. If none exist, the ranking term is
+zero.
 
 The complete objective is
 
@@ -586,8 +614,9 @@ $$
 {\sqrt{(C+D+T_y)(C+D+T_s)}},
 $$
 
-where $C,D$ are concordant and discordant pair counts and $T_y,T_s$ are target and
-score ties. Spearman correlation is
+where $C,D$ are concordant and discordant pair counts. Here $T_y$ counts pairs tied
+only in the target and $T_s$ counts pairs tied only in the score; pairs tied in both are
+excluded from all four counts. Spearman correlation is
 
 $$
 \rho=\mathrm{corr}
@@ -595,12 +624,14 @@ $$
 \mathrm{rank}(s)\right).
 $$
 
-Metrics are always computed within each Hamiltonian and macro-averaged:
+Metrics are always computed within each Hamiltonian and macro-averaged. Let
+$\Lambda_{\mathrm{def}}$ be the subset of evaluated Hamiltonians for which Kendall's
+correlation is defined. The implementation reports
 
 $$
 \overline\tau
-=\frac{1}{|\Lambda_{\mathrm{test}}|}
-\sum_{\lambda\in\Lambda_{\mathrm{test}}}
+=\frac{1}{|\Lambda_{\mathrm{def}}|}
+\sum_{\lambda\in\Lambda_{\mathrm{def}}}
 \tau_b^{(\lambda)}.
 $$
 
@@ -626,7 +657,7 @@ and parameter transfer without mixing fingerprints across partitions.
 It reports
 
 $$
-\widehat\mu_\tau=\frac15\sum_{s=1}^{5}\overline\tau_s,
+\widehat\mu_\tau=\frac15\sum_{j=1}^{5}\overline\tau_j,
 $$
 
 and sample standard deviation
@@ -634,16 +665,28 @@ and sample standard deviation
 $$
 \widehat\sigma_\tau=
 \sqrt{\frac{1}{4}
-\sum_{s=1}^{5}
-(\overline\tau_s-\widehat\mu_\tau)^2}.
+\sum_{j=1}^{5}
+(\overline\tau_j-\widehat\mu_\tau)^2}.
 $$
 
 A percentile bootstrap samples the five seed-level results with replacement 10,000
-times. If $\mu^{\star(b)}$ is bootstrap mean $b$, the reported interval is
+times. For bootstrap replicate $b$, indices $I_{bj}$ are sampled independently and
+uniformly from $\{1,\ldots,5\}$, giving
 
 $$
-\mathrm{CI}_{95\%}=
-\left[Q_{0.025}(\mu^{\star}),Q_{0.975}(\mu^{\star})\right].
+\mu_b^{\mathrm{boot}}
+=\frac15\sum_{j=1}^{5}\overline\tau_{I_{bj}},
+I_{bj}\sim\mathrm{Uniform}\{1,\ldots,5\}.
+$$
+
+The 95 percent percentile interval is therefore
+
+$$
+\mathrm{CI}_{0.95}=
+\left[
+Q_{0.025}\left(\{\mu_b^{\mathrm{boot}}\}_{b=1}^{10000}\right),
+Q_{0.975}\left(\{\mu_b^{\mathrm{boot}}\}_{b=1}^{10000}\right)
+\right].
 $$
 
 Resampling circuit rows would violate independence, so it is not used. With only five
